@@ -1,0 +1,12 @@
+/build*/
+/test-results/
+__pycache__/
+*.pyc
+*.o
+*.exe
+*.zip
+.idea/
+.vscode/
+*.swp
+core
+core.*

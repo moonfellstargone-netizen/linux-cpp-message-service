@@ -1,0 +1,56 @@
+name: Linux build and tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Ubuntu 24.04 (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: debug
+            sanitizers: "OFF"
+          - name: asan-ubsan
+            sanitizers: "ON"
+    env:
+      ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Record environment
+        run: |
+          mkdir -p build/test-results
+          {
+            uname -a
+            cat /etc/os-release
+            g++ --version
+            cmake --version
+            python3 --version
+            lscpu
+          } > build/test-results/environment.txt
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DMSG_ENABLE_SANITIZERS=${{ matrix.sanitizers }}
+      - name: Build
+        run: cmake --build build --parallel 2
+      - name: Protocol and connection tests
+        run: ctest --test-dir build --output-on-failure --output-junit test-results/ctest.xml
+      - name: Preserve measured test reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux-tests-${{ matrix.name }}
+          path: |
+            build/test-results/
+            build/Testing/Temporary/LastTest.log
+            build/Testing/Temporary/LastTestsFailed.log
+          if-no-files-found: warn
+          retention-days: 30
