@@ -29,6 +29,34 @@ unsigned short parse_port(std::string_view text) {
     return static_cast<unsigned short>(port);
 }
 
+enum class LineStatus { Complete, EndOfInput, TooLong };
+
+LineStatus read_bounded_line(std::istream& input, std::string& line) {
+    line.clear();
+    bool too_long = false;
+    char character;
+    while (input.get(character)) {
+        if (character == '\n') {
+            return too_long ? LineStatus::TooLong : LineStatus::Complete;
+        }
+        if (line.size() < msg::kMaxRequestBody) {
+            line.push_back(character);
+        } else {
+            // Discard the rest of this line rather than treating it as another
+            // request or retaining an arbitrarily large amount of input.
+            too_long = true;
+        }
+    }
+    if (input.bad() || !input.eof()) {
+        throw std::runtime_error("stdin read failed");
+    }
+    if (too_long) {
+        return LineStatus::TooLong;
+    }
+    // EOF can terminate a valid final line without a trailing newline.
+    return line.empty() ? LineStatus::EndOfInput : LineStatus::Complete;
+}
+
 void send_all(int fd, std::string_view bytes) {
     std::size_t offset = 0;
     while (offset < bytes.size()) {
@@ -108,10 +136,12 @@ int main(int argc, char* argv[]) {
             if (interactive) {
                 std::cout << "> " << std::flush;
             }
-            if (!std::getline(std::cin, line) || line == "/quit") {
+            const auto status = read_bounded_line(std::cin, line);
+            if (status == LineStatus::EndOfInput ||
+                (status == LineStatus::Complete && line == "/quit")) {
                 break;
             }
-            if (line.empty() || line.size() > msg::kMaxRequestBody) {
+            if (status == LineStatus::TooLong || line.empty()) {
                 std::cerr << "Input must contain 1.." << msg::kMaxRequestBody
                           << " bytes; nothing was sent.\n";
                 continue;

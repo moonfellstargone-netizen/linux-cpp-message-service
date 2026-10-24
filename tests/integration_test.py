@@ -26,6 +26,8 @@ from datetime import datetime, timezone
 CONFIG = None
 IO_TIMEOUT = 2.0
 MAX_BODY = 1024
+CLIENT_TIMEOUT = 5.0
+INPUT_REJECTED = b"Input must contain 1..1024 bytes; nothing was sent.\n"
 
 
 def frame(body):
@@ -72,7 +74,7 @@ def scenario(connections, request_sizes, purpose):
 class RunningServer:
     """Each case owns a separate process and an ordinary temporary log file."""
 
-    def __init__(self, executable):
+    def __init__(self, executable, pipe_stderr=False):
         self.temp_dir = tempfile.TemporaryDirectory(prefix="message-service-test-")
         self.log_path = Path(self.temp_dir.name) / "server.log"
         self.log_file = self.log_path.open("wb", buffering=0)
@@ -82,7 +84,7 @@ class RunningServer:
                 [str(executable), "0"],
                 stdin=subprocess.DEVNULL,
                 stdout=self.log_file,
-                stderr=subprocess.STDOUT,
+                stderr=subprocess.PIPE if pipe_stderr else subprocess.STDOUT,
             )
             deadline = time.monotonic() + 5.0
             while time.monotonic() < deadline:
@@ -118,6 +120,9 @@ class RunningServer:
                 forced_kill = True
                 self.process.kill()
                 self.process.wait(timeout=3.0)
+        if self.process is not None and self.process.stderr is not None:
+            if not self.process.stderr.closed:
+                self.process.stderr.close()
         self.last_log = self.read_log()
         self.log_file.close()
         self.temp_dir.cleanup()
@@ -158,6 +163,25 @@ class IntegrationTests(unittest.TestCase):
             self.assertEqual(peer.recv(1), b"", "invalid connection returned data")
         except (ConnectionResetError, ConnectionAbortedError):
             pass
+
+    def run_client(self, input_bytes=None, stdin_fd=None):
+        if CONFIG.client is None:
+            self.skipTest("--client was not supplied")
+        arguments = {"input": input_bytes} if stdin_fd is None else {"stdin": stdin_fd}
+        return subprocess.run(
+            [str(CONFIG.client), "127.0.0.1", str(self.server.port)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=CLIENT_TIMEOUT,
+            check=False,
+            **arguments,
+        )
+
+    def assert_client_output(self, completed, expected_requests, rejected_lines=0):
+        self.assertEqual(completed.returncode, 0, completed.stderr.decode(errors="replace"))
+        expected_stdout = b"".join(response(body) + b"\n" for body in expected_requests)
+        self.assertEqual(completed.stdout, expected_stdout, "unexpected client response sequence")
+        self.assertEqual(completed.stderr, INPUT_REJECTED * rejected_lines)
 
     @scenario(3, [5, 4, 5], "multiple live connections and repeated exchanges")
     def test_multiple_clients(self):
@@ -357,18 +381,96 @@ class IntegrationTests(unittest.TestCase):
 
     @scenario(1, [12], "real command-line client reads stdin and prints response")
     def test_client_smoke(self):
+        self.assert_client_output(self.run_client(b"client smoke\n"), [b"client smoke"])
+
+    @scenario(1, [1024, 15], "2 MiB and 1025-byte stdin lines are rejected before valid-line recovery")
+    def test_client_bounded_line_recovery(self):
+        huge_length = 2 * 1024 * 1024
+        valid = b"v" * MAX_BODY
+        after = b"after oversized"
+        input_bytes = b"x" * huge_length + b"\n" + valid + b"\n" + b"y" * 1025 + b"\n" + after + b"\n"
+        self.observations.update(
+            stdin_line_bytes=[huge_length, len(valid), 1025, len(after)],
+            expected_sent_request_body_bytes=[len(valid), len(after)],
+            expected_local_rejections=2,
+            client_process_timeout_seconds=CLIENT_TIMEOUT,
+            memory_usage_not_measured=True,
+        )
+        self.assert_client_output(self.run_client(input_bytes), [valid, after], rejected_lines=2)
+
+    @scenario(1, [1024, 5], "UTF-8 byte boundary, empty-line recovery, and /quit ignores later stdin")
+    def test_client_utf8_empty_and_quit(self):
+        prefix = "你".encode("utf-8") * 341
+        valid = prefix + b"x"
+        invalid = prefix + b"xy"
+        self.assertEqual(len(valid), 1024)
+        self.assertEqual(len(invalid), 1025)
+        input_bytes = b"\n" + valid + b"\n" + invalid + b"\nready\n/quit\nnot sent\n"
+        self.observations.update(
+            stdin_line_bytes=[0, len(valid), len(invalid), 5, 5, 8],
+            expected_sent_request_body_bytes=[len(valid), 5],
+            expected_local_rejections=2,
+            client_process_timeout_seconds=CLIENT_TIMEOUT,
+        )
+        self.assert_client_output(self.run_client(input_bytes), [valid, b"ready"], rejected_lines=2)
+
+    @scenario(1, [8], "EOF without newline sends one valid tail but rejects an oversized tail")
+    def test_client_eof_tail_lines(self):
+        self.observations.update(
+            separate_client_stdin_bytes=[8, 1025],
+            trailing_newline=False,
+            expected_sent_request_body_bytes=[8],
+            expected_local_rejections=1,
+            client_process_timeout_seconds=CLIENT_TIMEOUT,
+        )
+        with self.subTest(tail="valid"):
+            self.assert_client_output(self.run_client(b"tail EOF"), [b"tail EOF"])
+        with self.subTest(tail="oversized"):
+            self.assert_client_output(self.run_client(b"x" * 1025), [], rejected_lines=1)
+
+    @scenario(1, [], "Linux directory stdin descriptor produces a read error and nonzero exit")
+    def test_client_stdin_read_error(self):
+        if platform.system() != "Linux":
+            self.skipTest("directory-descriptor stdin error check requires Linux")
         if CONFIG.client is None:
             self.skipTest("--client was not supplied")
-        completed = subprocess.run(
-            [str(CONFIG.client), "127.0.0.1", str(self.server.port)],
-            input=b"client smoke\n",
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=5.0,
-            check=False,
+        stdin_fd = os.open(self.server.temp_dir.name, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            completed = self.run_client(stdin_fd=stdin_fd)
+        finally:
+            os.close(stdin_fd)
+        self.observations.update(
+            stdin_source="read-only directory descriptor (read returns EISDIR)",
+            expected_sent_request_body_bytes=[],
+            client_process_timeout_seconds=CLIENT_TIMEOUT,
+            client_exit_code=completed.returncode,
         )
-        self.assertEqual(completed.returncode, 0, completed.stderr.decode(errors="replace"))
-        self.assertIn(response(b"client smoke"), completed.stdout)
+        self.assertNotEqual(completed.returncode, 0, "stdin read error was reported as successful EOF")
+        self.assertEqual(completed.stdout, b"")
+        self.assertEqual(completed.stderr, b"message_client: stdin read failed\n")
+
+    @scenario(1, [20], "closed stderr pipe does not terminate the server during connection logging")
+    def test_closed_stderr_pipe_isolation(self):
+        isolated = RunningServer(CONFIG.server, pipe_stderr=True)
+
+        def close_isolated_server():
+            forced_kill = isolated.close()
+            self.observations["closed_stderr_server"] = {
+                "forced_kill_during_cleanup": forced_kill,
+                "exit_code_after_shutdown": isolated.process.returncode,
+                "stdout_log_tail": isolated.last_log[-4000:],
+            }
+            self.assertFalse(forced_kill, "closed-stderr server did not stop normally")
+            self.assertEqual(isolated.process.returncode, 0, "closed-stderr server shutdown failed")
+
+        self.addCleanup(close_isolated_server)
+        # Never read this pipe: closing its reader makes the next stderr write
+        # exercise EPIPE/SIGPIPE without risking a blocking read in the suite.
+        isolated.process.stderr.close()
+        self.observations.update(stderr_pipe_reader_closed=True, server_processes_in_case=2)
+        with isolated.connect() as peer:
+            self.exchange(peer, b"after stderr closure")
+        self.assertIsNone(isolated.process.poll(), "closed stderr pipe terminated the server")
 
 
 class RecordingResult(unittest.TextTestResult):
