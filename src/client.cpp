@@ -7,6 +7,7 @@
 
 #include <cerrno>
 #include <charconv>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
@@ -137,6 +138,11 @@ int main(int argc, char* argv[]) {
                 std::cout << "> " << std::flush;
             }
             const auto status = read_bounded_line(std::cin, line);
+            // With the default stdio synchronization, a failed fgetc() can
+            // look like EOF to iostreams. Preserve the underlying read error.
+            if (std::ferror(stdin) != 0) {
+                throw std::runtime_error("stdin read failed");
+            }
             if (status == LineStatus::EndOfInput ||
                 (status == LineStatus::Complete && line == "/quit")) {
                 break;
