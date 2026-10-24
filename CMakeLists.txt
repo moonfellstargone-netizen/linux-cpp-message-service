@@ -11,7 +11,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(message_options INTERFACE -Wall -Wextra -Wpedantic)
     if(MSG_ENABLE_SANITIZERS)
         target_compile_options(message_options INTERFACE -fsanitize=address,undefined
-                               -fno-omit-frame-pointer -g)
+                               -fno-sanitize-recover=undefined -fno-omit-frame-pointer -g)
         target_link_options(message_options INTERFACE -fsanitize=address,undefined)
     endif()
 endif()

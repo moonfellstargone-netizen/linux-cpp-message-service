@@ -190,6 +190,14 @@ unsigned short parse_port(int argc, char** argv) {
 }
 
 void install_signal_handlers() {
+    // MSG_NOSIGNAL protects socket sends, but stderr/stdout can also be pipes.
+    // A closed log consumer must not terminate the entire service.
+    struct sigaction ignore_pipe {};
+    ignore_pipe.sa_handler = SIG_IGN;
+    ::sigemptyset(&ignore_pipe.sa_mask);
+    if (::sigaction(SIGPIPE, &ignore_pipe, nullptr) < 0) {
+        throw std::runtime_error(system_error("sigaction_sigpipe_failed"));
+    }
     struct sigaction action {};
     action.sa_handler = request_stop;
     ::sigemptyset(&action.sa_mask);
