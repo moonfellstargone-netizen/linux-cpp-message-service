@@ -8,9 +8,9 @@
 
 ## 当前状态
 
-2026-10-24 已在 GitHub Actions 的 Ubuntu 24.04 环境完成编译、协议测试和 **20 项网络集成测试**，普通构建及 ASan/UBSan 构建均通过，无跳过项。验证版本为 `58fb118`，见 [CI 运行](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40104759981) 和 [归档的原始报告](reports/README.md)。
+2026-10-25（北京时间）已在 GitHub Actions 的 Ubuntu 24.04 环境完成 **Debug、ASan/UBSan、Release** 三种构建验证。每种均通过协议测试、**20 项网络集成测试和 4 项测量工具检查**，无失败或跳过。验证版本为 `d78f936`，见 [CI 运行](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40110569171) 和 [归档的原始报告](reports/README.md)。
 
-本轮补充超长输入恢复、UTF-8 字节边界、EOF 尾行、输入读取失败和关闭日志管道回归；真实问题与修复前后的证据见 [排障案例](docs/debugging.md)。
+项目已覆盖超长输入恢复、UTF-8 字节边界、EOF 尾行、输入读取失败和关闭日志管道回归；真实问题与修复前后的证据见 [排障案例](docs/debugging.md)。本轮新增有界测量工具和四组 Release 本机回环观察，保留条件及原始结果，见 [测量方法与限制](docs/measurement.md)。
 
 本人 Ubuntu 虚拟机复现、三终端手工演示和独立修改练习仍待完成；CI 通过不等于已经完成个人理解验收。详细条件见 [验证状态](docs/status.md) 和 [测试方法](docs/testing.md)。
 
@@ -79,9 +79,11 @@ bash scripts/build.sh
 - [三终端演示及故障复现](docs/demo.md)
 - [源码阅读与独立练习](docs/learning.md)
 - [真实排障记录入口](docs/debugging.md)
+- [岗位对应、简历表述与面试准备](docs/application.md)
+- [有条件的本机测量与原始结果](docs/measurement.md)
 - [已执行测试的原始报告与来源](reports/README.md)
 - [已确认、待验证、暂不做与接续](docs/status.md)
 
-源码入口为 [服务端](src/server.cpp)、[客户端](src/client.cpp)、[协议与限制](include/msg/protocol.hpp) 和 [描述符所有权](include/msg/unique_fd.hpp)；测试入口为 [协议测试](tests/protocol_test.cpp) 和 [连接测试](tests/integration_test.py)。
+源码入口为 [服务端](src/server.cpp)、[客户端](src/client.cpp)、[协议与限制](include/msg/protocol.hpp) 和 [描述符所有权](include/msg/unique_fd.hpp)；测试入口为 [协议测试](tests/protocol_test.cpp)、[连接测试](tests/integration_test.py) 和 [测量工具检查](tests/load_probe_test.py)。
 
-在本人完成独立修改、运行和解释之前，不将本项目表述为“已独立掌握 Linux 服务端开发”。是否用于简历及具体措辞，应依据后续可复现结果确定。
+可按 [投递说明](docs/application.md) 据实描述已实现和已验证的内容，同时继续使用已有真实经历投递；个人运行与理解验收仍待完成，不表述为“已独立掌握 Linux 服务端开发”。

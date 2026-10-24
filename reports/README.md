@@ -1,8 +1,25 @@
 # 已执行测试报告
 
-这里保存实际执行结果，避免仅依赖会过期的 CI 附件。日期为 2026-10-24，各快照对应下面明确列出的源码版本；原始报告没有重新生成或修改数值。
+这里保存实际执行结果，避免仅依赖会过期的 CI 附件。最新归档日期为北京时间 2026-10-25，各快照对应下面明确列出的源码版本；原始报告没有重新生成或修改数值。
 
-## 本轮 20 项回归
+## 最新三种构建与有界观察
+
+源码为 `d78f93670998a85e228ce4296cf5d19b9fac49da`，来源为 [CI 运行 40110569171](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40110569171)，执行于 2026-10-24 16:13–16:14 UTC（北京时间 2026-10-25）。三种构建各有 3 个 CTest 测试组：协议测试、20 项网络集成测试、4 项测量工具检查；均通过，无失败或跳过。
+
+- Debug：[网络 JSON](ci-d78f936/debug/integration.json)、[环境](ci-d78f936/debug/environment.txt)、[构建配置](ci-d78f936/debug/build-config.txt)、[CTest 日志](ci-d78f936/debug/LastTest.log)、[CTest XML](ci-d78f936/debug/ctest.xml)。附件 `linux-tests-debug`，ID `12566596830`。
+- ASan/UBSan：[网络 JSON](ci-d78f936/asan-ubsan/integration.json)、[环境](ci-d78f936/asan-ubsan/environment.txt)、[构建配置](ci-d78f936/asan-ubsan/build-config.txt)、[CTest 日志](ci-d78f936/asan-ubsan/LastTest.log)、[CTest XML](ci-d78f936/asan-ubsan/ctest.xml)。附件 `linux-tests-asan-ubsan`，ID `12566048693`。
+- Release：[网络 JSON](ci-d78f936/release/integration.json)、[环境](ci-d78f936/release/environment.txt)、[构建配置](ci-d78f936/release/build-config.txt)、[CTest 日志](ci-d78f936/release/LastTest.log)、[CTest XML](ci-d78f936/release/ctest.xml)。附件 `linux-tests-release`，ID `12566221962`。
+
+Release 另执行四组单次回环观察，每组目标 3 秒、每连接预热 10 次、一条未完成请求；全部逐条核对回复并正常退出：
+
+- [1 条连接、128 字节正文](ci-d78f936/release/load-1c-128b.json)。
+- [4 条连接、128 字节正文](ci-d78f936/release/load-4c-128b.json)。
+- [8 条连接、128 字节正文](ci-d78f936/release/load-8c-128b.json)。
+- [4 条连接、1024 字节正文](ci-d78f936/release/load-4c-1024b.json)。
+
+以上文件从对应附件解压，保留原始内容。数字解释、环境、计时方式和复现命令见 [测量说明](../docs/measurement.md)。它们是驱动与服务端同机的短时观察，没有重复实验的稳定性结论，不能与下面功能测试耗时混用，也不是生产容量数据。
+
+## 前次 20 项修复回归
 
 最终修复源码为 `58fb118dcc09f6786c144f83cc4f91e90722a252`，来源为 [CI 运行 40104759981](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40104759981)。普通构建与 ASan/UBSan 构建均通过协议测试和 20 项集成测试，失败、错误、跳过数均为 0。
 

@@ -2,9 +2,9 @@
 
 ## 状态与目的
 
-2026-10-24，验证提交 `58fb118` 在 GitHub Actions Ubuntu 24.04 的普通构建与 ASan/UBSan 构建下均通过协议测试及 20 项连接测试，无失败、无跳过。详见 [CI 运行](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40104759981) 与 [原始报告](../reports/README.md)。本人 Ubuntu 虚拟机复现和手工演示仍待执行。
+2026-10-25（北京时间），验证提交 `d78f936` 在 GitHub Actions Ubuntu 24.04 的 Debug、ASan/UBSan 和 Release 构建下均通过协议测试、20 项连接测试及 4 项测量工具检查，无失败、无跳过。详见 [CI 运行](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40110569171) 与 [原始报告](../reports/README.md)。本人 Ubuntu 虚拟机复现和手工演示仍待执行。
 
-测试分为纯协议测试和真实 socket 集成测试。前者验证长度、边界和字节保留；后者验证连接收发、断开及错误隔离。程序在某次测试中通过，不等于不存在其他缺陷。
+CTest 包含三个测试组：纯协议测试验证长度、边界和字节保留；真实 socket 集成测试验证连接收发、断开及错误隔离；测量工具检查验证结果自洽及失败时不会报告成功指标。程序在某次测试中通过，不等于不存在其他缺陷。
 
 ## 构建与运行
 
@@ -27,9 +27,17 @@ bash scripts/build.sh
 python3 tests/integration_test.py --server ./build/message_server --client ./build/message_client --report build/test-results/integration.json
 ```
 
-`ctest` 包含协议测试和集成测试。备用构建后也可使用上面的 Python 命令进行真实连接验证；具体参数可查看 `python3 tests/integration_test.py --help`。
+备用构建后也可使用上面的 Python 命令进行真实连接验证；具体参数可查看 `python3 tests/integration_test.py --help`。测量工具的 4 项检查可单独运行：
 
-GitHub Actions 会在推送和拉取请求时执行普通构建，以及启用 AddressSanitizer / UndefinedBehaviorSanitizer 的构建。每个用例都会检查服务端运行时存活、清理时未被强制终止且退出码为 0，保存日志尾部，避免漏掉退出阶段失败。每次运行的结果仅适用于对应提交，在 [验证状态](status.md) 登记。
+```bash
+python3 tests/load_probe_test.py --server ./build/message_server
+```
+
+检查包括短时真实运行的报告一致性、10 组非法参数、服务端文件缺失以及服务端启动失败。没有设置“速度必须达到某值”的通过条件。
+
+GitHub Actions 会在推送和拉取请求时执行 Debug、Release，以及启用 AddressSanitizer / UndefinedBehaviorSanitizer 的 Debug 构建。网络集成用例检查服务端运行时存活、清理时未被强制终止且退出码为 0，保存日志尾部，避免漏掉退出阶段失败。每次运行的结果仅适用于对应提交，在 [验证状态](status.md) 登记。
+
+Release 任务还单独执行四组各 3 秒的回环观察，并保存 JSON；它们与功能测试分开解释，条件、计时口径和复现命令见 [测量说明](measurement.md)。没有据此更换 I/O 模型或添加线程池。
 
 本地启用相同的编译检测：
 
@@ -71,4 +79,4 @@ Linux 上可在重复连接前后观察服务端 `/proc/<pid>/fd` 数量，并�
 
 FD 数回到基线，只能说明本次场景未观察到持续增加的描述符；它不能证明没有内存泄漏，也不能覆盖所有 FD 路径。虚拟内存或常驻内存的单次变化同样不能直接判定泄漏。
 
-连接上限是保护性配置。本项目所有自动连接与消息仅为本地模拟，不能表述为企业生产流量、线上压测或已证实的生产并发能力。优化前应另行定义负载、持续时间、指标和可重复的测量方法。
+连接上限是保护性配置。本项目所有自动连接与消息仅为本地模拟，不能表述为企业生产流量、线上压测或已证实的生产并发能力。已有短时观察不构成容量结论；优化前仍需按具体问题定义负载、重复次数、持续时间和指标。

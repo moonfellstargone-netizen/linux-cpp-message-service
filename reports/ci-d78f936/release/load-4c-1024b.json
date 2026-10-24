@@ -1,0 +1,104 @@
+{
+  "report_type": "bounded_loopback_request_reply_observation",
+  "started_at_utc": "2026-10-24T16:13:57.657391+00:00",
+  "successful": true,
+  "conditions": {
+    "connections": 4,
+    "message_body_bytes": 1024,
+    "warmup_requests_per_connection": 10,
+    "requested_duration_seconds": 3.0,
+    "in_flight_requests_per_connection": 1,
+    "network": "IPv4 loopback 127.0.0.1",
+    "io_timeout_seconds": 2.0,
+    "io_timeout_scope": "per send, response header, and response body"
+  },
+  "summary": {
+    "completed_requests": 94607,
+    "elapsed_seconds": 3.000225992,
+    "completed_requests_per_second": 31533.291242815154,
+    "rtt_mean_ms": 0.12604134948788145,
+    "rtt_min_ms": 0.017196,
+    "rtt_max_ms": 5.088783,
+    "request_application_frame_bytes": 97255996,
+    "response_application_frame_bytes": 98296673
+  },
+  "workers": [
+    {
+      "worker_id": 0,
+      "completed_requests": 23581,
+      "warmup_completed": 10,
+      "rtt_total_ns": 2981063544,
+      "rtt_min_ns": 18167,
+      "rtt_max_ns": 3053384,
+      "last_completion_ns": 49561083286,
+      "error": null
+    },
+    {
+      "worker_id": 1,
+      "completed_requests": 23711,
+      "warmup_completed": 10,
+      "rtt_total_ns": 2981174471,
+      "rtt_min_ns": 17196,
+      "rtt_max_ns": 5088783,
+      "last_completion_ns": 49561066959,
+      "error": null
+    },
+    {
+      "worker_id": 2,
+      "completed_requests": 24623,
+      "warmup_completed": 10,
+      "rtt_total_ns": 2980324168,
+      "rtt_min_ns": 17586,
+      "rtt_max_ns": 5086841,
+      "last_completion_ns": 49560906474,
+      "error": null
+    },
+    {
+      "worker_id": 3,
+      "completed_requests": 22692,
+      "warmup_completed": 10,
+      "rtt_total_ns": 2981831768,
+      "rtt_min_ns": 17437,
+      "rtt_max_ns": 3094825,
+      "last_completion_ns": 49561125929,
+      "error": null
+    }
+  ],
+  "errors": [],
+  "server": {
+    "startup_completed": true,
+    "exit_code": 0,
+    "forced_kill": false,
+    "log_tail": "event=listening port=44801 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=accepted connection=2 reason=connected\nevent=accepted connection=3 reason=connected\nevent=accepted connection=4 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=closed connection=2 reason=peer_eof\nevent=closed connection=3 reason=peer_eof\nevent=closed connection=4 reason=peer_eof\nevent=stopped reason=signal\n"
+  },
+  "limits": [
+    "Local driver threads, validation and scheduling affect the observations.",
+    "These results do not establish production traffic or maximum capacity.",
+    "Warmup is excluded; elapsed time includes the last completed in-flight request.",
+    "Application frame bytes include headers, not TCP/IP overhead; no percentiles."
+  ],
+  "source": {
+    "git_sha": "d78f93670998a85e228ce4296cf5d19b9fac49da",
+    "git_dirty": false
+  },
+  "binary": {
+    "path": "/home/runner/work/linux-cpp-message-service/linux-cpp-message-service/build/message_server",
+    "sha256": "0851b2d7ee6c7ba59c2bdf9d69ad9cdade2f3888194b48d24c2412ce0bb3be43"
+  },
+  "build": {
+    "cache_path": "/home/runner/work/linux-cpp-message-service/linux-cpp-message-service/build/CMakeCache.txt",
+    "build_type": "Release",
+    "cxx_compiler": "/usr/bin/c++",
+    "cxx_flags": "",
+    "sanitizers": "OFF",
+    "build_type_cxx_flags": "-O3 -DNDEBUG"
+  },
+  "environment": {
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "cpu_model": "AMD EPYC 9V45 96-Core Processor",
+    "logical_cpu_count": 4,
+    "physical_memory_bytes": 16766414848,
+    "python_version": "3.12.3",
+    "python_executable": "/usr/bin/python3"
+  }
+}
