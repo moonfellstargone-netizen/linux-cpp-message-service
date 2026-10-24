@@ -118,6 +118,7 @@ class RunningServer:
                 forced_kill = True
                 self.process.kill()
                 self.process.wait(timeout=3.0)
+        self.last_log = self.read_log()
         self.log_file.close()
         self.temp_dir.cleanup()
         return forced_kill
@@ -136,7 +137,12 @@ class IntegrationTests(unittest.TestCase):
         forced_kill = self.server.close()
         self.observations["server_forced_kill_during_cleanup"] = forced_kill
         self.observations["server_exit_code_after_shutdown"] = self.server.process.returncode
+        self.observations["server_log_tail"] = self.server.last_log[-4000:]
         self.assertFalse(forced_kill, "server did not stop within the normal shutdown deadline")
+        self.assertEqual(
+            self.server.process.returncode, 0,
+            "server failed during shutdown:\n" + self.server.last_log[-4000:],
+        )
 
     def exchange(self, peer, body):
         peer.sendall(frame(body))
@@ -280,6 +286,24 @@ class IntegrationTests(unittest.TestCase):
         )
         self.assertLessEqual(after, before, "accepted descriptors were not reclaimed")
         self.check_healthy()
+
+    @scenario(65, [8], "64 accepted peers stay usable when the next peer is rejected")
+    def test_connection_limit_isolation(self):
+        peers = []
+        try:
+            for _ in range(64):
+                peer = self.server.connect()
+                peers.append(peer)
+                # A reply confirms accept() completed before testing the limit.
+                self.exchange(peer, b"capacity")
+            with self.server.connect() as excess:
+                self.expect_closed(excess)
+            self.exchange(peers[0], b"capacity")
+            self.observations["accepted_connections_held"] = 64
+            self.observations["excess_connection_rejected"] = True
+        finally:
+            for peer in peers:
+                peer.close()
 
     @scenario(2, [1024, 13], "bounded non-reading peer exercise with healthy peer")
     def test_slow_reader_does_not_block_healthy_peer(self):
