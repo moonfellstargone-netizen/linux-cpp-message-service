@@ -1,6 +1,21 @@
 # 已执行测试报告
 
-这里保存实际执行结果，避免仅依赖会过期的 CI 附件。日期为 2026-10-24，验证源码为 `5399f7bdd86cf33ec706d149f8b3d4f3f87d0db3`。
+这里保存实际执行结果，避免仅依赖会过期的 CI 附件。日期为 2026-10-24，各快照对应下面明确列出的源码版本；原始报告没有重新生成或修改数值。
+
+## 本轮 20 项回归
+
+最终修复源码为 `58fb118dcc09f6786c144f83cc4f91e90722a252`，来源为 [CI 运行 40104759981](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40104759981)。普通构建与 ASan/UBSan 构建均通过协议测试和 20 项集成测试，失败、错误、跳过数均为 0。
+
+- [普通构建 JSON](ci-58fb118/debug/integration.json)、[环境](ci-58fb118/debug/environment.txt)、[CTest 日志](ci-58fb118/debug/LastTest.log)、[CTest XML](ci-58fb118/debug/ctest.xml)。
+- [ASan/UBSan 构建 JSON](ci-58fb118/asan-ubsan/integration.json)、[环境](ci-58fb118/asan-ubsan/environment.txt)、[CTest 日志](ci-58fb118/asan-ubsan/LastTest.log)、[CTest XML](ci-58fb118/asan-ubsan/ctest.xml)。
+
+修复前复现版本为 `ed70dad675e4692c22e6c69bc3910237326690a6`，来源为 [CI 运行 40104175413](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40104175413)。保留 [失败 JSON](ci-ed70dad/debug/integration.json)、[原始日志](ci-ed70dad/debug/LastTest.log)、[环境](ci-ed70dad/debug/environment.txt) 与 [CTest XML](ci-ed70dad/debug/ctest.xml)。该运行确实失败，不能当作通过记录：stdin 错误用例返回 0，日志关闭用例的专属服务端退出 -13。同一用例可能在执行和清理时各记一次错误，所以汇总 2 failures、1 error 来自两个故障用例。
+
+本轮新增用例包括 2097152 字节超长输入及恢复、UTF-8 边界、EOF 尾行、目录 stdin 和关闭日志管道。超长输入是客户端本地拒绝检查，不是发送了 2 MiB 请求，也没有测量客户端峰值内存。实际连接数、请求大小、每项耗时及环境逐项保存在 JSON 中。
+
+## 首版 15 项记录
+
+验证源码为 `5399f7bdd86cf33ec706d149f8b3d4f3f87d0db3`，保留用于追溯初版结果，不代替本轮 20 项回归。
 
 来源：[GitHub Actions 运行 40098429400](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40098429400)。报告从该运行的 `linux-tests-debug` 和 `linux-tests-asan-ubsan` 附件下载，保留原始内容，没有重新生成或编辑数值。
 

@@ -2,7 +2,7 @@
 
 ## 状态与目的
 
-2026-10-24，验证提交 `5399f7b` 在 GitHub Actions Ubuntu 24.04 的普通构建与 ASan/UBSan 构建下均通过协议测试及 15 项连接测试，无失败、无跳过。详见 [CI 运行](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40098429400) 与 [原始报告](../reports/README.md)。本人 Ubuntu 虚拟机复现和手工演示仍待执行。
+2026-10-24，验证提交 `58fb118` 在 GitHub Actions Ubuntu 24.04 的普通构建与 ASan/UBSan 构建下均通过协议测试及 20 项连接测试，无失败、无跳过。详见 [CI 运行](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40104759981) 与 [原始报告](../reports/README.md)。本人 Ubuntu 虚拟机复现和手工演示仍待执行。
 
 测试分为纯协议测试和真实 socket 集成测试。前者验证长度、边界和字节保留；后者验证连接收发、断开及错误隔离。程序在某次测试中通过，不等于不存在其他缺陷。
 
@@ -31,6 +31,16 @@ python3 tests/integration_test.py --server ./build/message_server --client ./bui
 
 GitHub Actions 会在推送和拉取请求时执行普通构建，以及启用 AddressSanitizer / UndefinedBehaviorSanitizer 的构建。每个用例都会检查服务端运行时存活、清理时未被强制终止且退出码为 0，保存日志尾部，避免漏掉退出阶段失败。每次运行的结果仅适用于对应提交，在 [验证状态](status.md) 登记。
 
+本地启用相同的编译检测：
+
+```bash
+cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=Debug -DMSG_ENABLE_SANITIZERS=ON
+cmake --build build-asan
+ctest --test-dir build-asan --output-on-failure
+```
+
+GNU/Clang 配置包含 `-fno-sanitize-recover=undefined`，防止本地 UBSan 仅打印错误后继续成功退出；不只依赖 CI 的环境变量。该参数语义参见 [GCC 文档](https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html)。本轮没有在正式服务中注入 UB。
+
 ## 应覆盖的行为
 
 - 正常小消息、1 字节及 1024 字节边界；二进制 NUL 和 UTF-8 原始字节按字节数处理。
@@ -39,6 +49,8 @@ GitHub Actions 会在推送和拉取请求时执行普通构建，以及启用 A
 - 请求发到一半就关闭连接；完整请求后半关闭发送方向，仍可接收响应。
 - 一个客户端发送非法请求或异常退出，同时正常客户端继续请求回复。
 - 重复连接和断开，观察连接能否重新建立及资源是否恢复；连接上限和缓冲保护需有对应检查。
+- CLI 的 2 MiB 超长行、1024/1025 字节与 UTF-8 边界、空行恢复、`/quit`、无末尾换行及超长 EOF；精确检查 stdout 响应序列与 stderr 本地诊断。
+- Linux 目录描述符作为 stdin 时客户端报告读取错误并非零退出；关闭服务端 stderr 管道读取端后合法请求仍正常，服务端保持存活并正常清理。
 
 本次资源观察：50 次顺序连接前后 FD 均为 4；持有 64 条已完成请求的连接后，第 65 条被拒绝，已有连接仍可请求。慢接收端场景的服务端日志实际记录了 `pending_limit`，另一连接仍得到正确回复。这些是功能及保护策略的验证，不是性能容量结论。完整消息大小、时间、环境和日志见归档 JSON。
 
