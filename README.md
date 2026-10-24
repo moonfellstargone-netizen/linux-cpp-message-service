@@ -1,24 +1,39 @@
 # Linux C++ 小型消息处理服务
 
+[![Linux build and tests](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/workflows/linux.yml/badge.svg)](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/workflows/linux.yml)
+
 `linux-cpp-message-service` 是面向学习和工程验证的 Linux C++ TCP 项目：客户端发送一条请求，服务端返回请求的字节数及原始内容。多个客户端可以分别与服务端通信，**不提供客户端之间的消息转发**。
 
 目标环境为 Ubuntu，使用 C++17、POSIX socket 和单线程非阻塞 `poll` 服务端；命令行客户端按请求、回复顺序同步交互。项目由 AI 辅助实现，用户独立阅读、修改和排障的理解验收尚待完成。它是按通用需求新建的个人项目，不是原单位项目或其成果。
 
 ## 当前状态
 
-Linux 编译、自动测试、三终端演示及资源观察：**待执行**。这里的设计与测试步骤不是已通过的测试结果；实际记录见 [验证状态](docs/status.md) 和 [测试方法](docs/testing.md)。
+2026-10-24 已在 GitHub Actions 的 Ubuntu 24.04 环境完成编译、协议测试和 **15 项网络集成测试**，普通构建及 ASan/UBSan 构建均通过，无跳过项。验证版本为 `5399f7b`，见 [CI 运行](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40098429400) 和 [归档的原始报告](reports/README.md)。
+
+本人 Ubuntu 虚拟机复现、三终端手工演示和独立修改练习仍待完成；CI 通过不等于已经完成个人理解验收。详细条件见 [验证状态](docs/status.md) 和 [测试方法](docs/testing.md)。
 
 本项目用于练习消息边界、部分收发、连接清理及可重复验证。它不提供安全身份认证、持久化、离线消息或可靠投递保证，也没有生产流量或高并发能力的性能结论。
 
 ## 快速开始
 
-在现有 Ubuntu 环境中确认已有 C++17 编译器、CMake；自动集成测试另需 Python 3 标准库。暂不要求安装额外框架或测试库。
+在现有 Ubuntu 环境中确认已有 C++17 编译器、CMake 3.16 或以上；自动集成测试另需 Python 3.9 或以上的标准库。无需额外框架或测试库。
+
+先获取源码：
+
+```bash
+git clone https://github.com/moonfellstargone-netizen/linux-cpp-message-service.git
+cd linux-cpp-message-service
+```
+
+构建与测试：
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
 ctest --test-dir build --output-on-failure
 ```
+
+较早版本的 CTest 如果不支持 `--test-dir`，进入 `build` 目录执行 `ctest --output-on-failure`。
 
 单独运行真实连接测试并保存本地 JSON 报告：
 
@@ -52,6 +67,7 @@ bash scripts/build.sh
 - 每连接独立保存接收和发送状态，解析不完整消息及连续多帧，非法长度导致该连接关闭。
 - 最多 64 个连接，每连接接收缓冲上限 8192 字节、待发送缓冲上限 65536 字节。这些是保护性限制，不是测出的性能指标。
 - 不提供账号、消息路由、超时、自动重连、应用层确认、数据库、音视频或多节点能力。仅监听本机，不用于公网部署。
+- CLI 完整读取一行后再检查请求长度；客户端本地输入缓冲没有额外的内存上限。服务端限制的是应用层缓冲与未发送字节，不能据此计算整个进程的内存上限。
 
 ## 阅读导航
 
@@ -60,6 +76,7 @@ bash scripts/build.sh
 - [三终端演示及故障复现](docs/demo.md)
 - [源码阅读与独立练习](docs/learning.md)
 - [真实排障记录入口](docs/debugging.md)
+- [已执行测试的原始报告与来源](reports/README.md)
 - [已确认、待验证、暂不做与接续](docs/status.md)
 
 源码入口为 [服务端](src/server.cpp)、[客户端](src/client.cpp)、[协议与限制](include/msg/protocol.hpp) 和 [描述符所有权](include/msg/unique_fd.hpp)；测试入口为 [协议测试](tests/protocol_test.cpp) 和 [连接测试](tests/integration_test.py)。

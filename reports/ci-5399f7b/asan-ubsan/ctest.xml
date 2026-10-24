@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Linux-c++"
+	tests="2"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname="runnervmtai0g"
+	time="1"
+	timestamp="2026-10-24T13:30:38"
+	>
+	<testcase name="protocol" classname="protocol" time="0.317465" status="run">
+		<properties/>
+		<system-out>Protocol checks passed (active in Debug and Release).
+</system-out>
+	</testcase>
+	<testcase name="integration" classname="integration" time="0.839766" status="run">
+		<properties/>
+		<system-out>test_client_smoke (__main__.IntegrationTests.test_client_smoke) ... ok
+test_coalesced_frames (__main__.IntegrationTests.test_coalesced_frames) ... ok
+test_connection_limit_isolation (__main__.IntegrationTests.test_connection_limit_isolation) ... ok
+test_embedded_nul (__main__.IntegrationTests.test_embedded_nul) ... ok
+test_error_isolation (__main__.IntegrationTests.test_error_isolation) ... ok
+test_fragmented_header_and_body (__main__.IntegrationTests.test_fragmented_header_and_body) ... ok
+test_half_close_complete_frame (__main__.IntegrationTests.test_half_close_complete_frame) ... ok
+test_incomplete_orderly_eof (__main__.IntegrationTests.test_incomplete_orderly_eof) ... ok
+test_incomplete_reset (__main__.IntegrationTests.test_incomplete_reset) ... ok
+test_invalid_length_header_only (__main__.IntegrationTests.test_invalid_length_header_only) ... ok
+test_multiple_clients (__main__.IntegrationTests.test_multiple_clients) ... ok
+test_repeated_connections_release_fds (__main__.IntegrationTests.test_repeated_conn...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+</testsuite>

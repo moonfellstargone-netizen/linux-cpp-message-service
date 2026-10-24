@@ -1,0 +1,55 @@
+Start testing: Oct 24 13:30 UTC
+----------------------------------------------------------
+1/2 Testing: protocol
+1/2 Test: protocol
+Command: "/home/runner/work/linux-cpp-message-service/linux-cpp-message-service/build/protocol_tests"
+Directory: /home/runner/work/linux-cpp-message-service/linux-cpp-message-service/build
+"protocol" start time: Oct 24 13:30 UTC
+Output:
+----------------------------------------------------------
+Protocol checks passed (active in Debug and Release).
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"protocol" end time: Oct 24 13:30 UTC
+"protocol" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/2 Testing: integration
+2/2 Test: integration
+Command: "/usr/bin/python3.12" "/home/runner/work/linux-cpp-message-service/linux-cpp-message-service/tests/integration_test.py" "--server" "/home/runner/work/linux-cpp-message-service/linux-cpp-message-service/build/message_server" "--client" "/home/runner/work/linux-cpp-message-service/linux-cpp-message-service/build/message_client" "--report" "/home/runner/work/linux-cpp-message-service/linux-cpp-message-service/build/test-results/integration.json"
+Directory: /home/runner/work/linux-cpp-message-service/linux-cpp-message-service/build
+"integration" start time: Oct 24 13:30 UTC
+Output:
+----------------------------------------------------------
+test_client_smoke (__main__.IntegrationTests.test_client_smoke) ... ok
+test_coalesced_frames (__main__.IntegrationTests.test_coalesced_frames) ... ok
+test_connection_limit_isolation (__main__.IntegrationTests.test_connection_limit_isolation) ... ok
+test_embedded_nul (__main__.IntegrationTests.test_embedded_nul) ... ok
+test_error_isolation (__main__.IntegrationTests.test_error_isolation) ... ok
+test_fragmented_header_and_body (__main__.IntegrationTests.test_fragmented_header_and_body) ... ok
+test_half_close_complete_frame (__main__.IntegrationTests.test_half_close_complete_frame) ... ok
+test_incomplete_orderly_eof (__main__.IntegrationTests.test_incomplete_orderly_eof) ... ok
+test_incomplete_reset (__main__.IntegrationTests.test_incomplete_reset) ... ok
+test_invalid_length_header_only (__main__.IntegrationTests.test_invalid_length_header_only) ... ok
+test_multiple_clients (__main__.IntegrationTests.test_multiple_clients) ... ok
+test_repeated_connections_release_fds (__main__.IntegrationTests.test_repeated_connections_release_fds) ... ok
+test_slow_reader_does_not_block_healthy_peer (__main__.IntegrationTests.test_slow_reader_does_not_block_healthy_peer) ... ok
+test_utf8_byte_count (__main__.IntegrationTests.test_utf8_byte_count) ... ok
+test_valid_boundaries (__main__.IntegrationTests.test_valid_boundaries) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.672s
+
+OK
+Functional test report: /home/runner/work/linux-cpp-message-service/linux-cpp-message-service/build/test-results/integration.json
+<end of output>
+Test time =   0.74 sec
+----------------------------------------------------------
+Test Passed.
+"integration" end time: Oct 24 13:30 UTC
+"integration" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 24 13:30 UTC

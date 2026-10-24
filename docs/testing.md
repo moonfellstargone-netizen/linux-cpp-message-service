@@ -2,7 +2,7 @@
 
 ## 状态与目的
 
-Ubuntu 上的编译和测试：**待执行**。本文件描述计划覆盖和执行方法，不能作为通过记录。真实结果应保存到本地构建目录，并在 [验证状态](status.md) 中记录条件和报告位置。
+2026-10-24，验证提交 `5399f7b` 在 GitHub Actions Ubuntu 24.04 的普通构建与 ASan/UBSan 构建下均通过协议测试及 15 项连接测试，无失败、无跳过。详见 [CI 运行](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40098429400) 与 [原始报告](../reports/README.md)。本人 Ubuntu 虚拟机复现和手工演示仍待执行。
 
 测试分为纯协议测试和真实 socket 集成测试。前者验证长度、边界和字节保留；后者验证连接收发、断开及错误隔离。程序在某次测试中通过，不等于不存在其他缺陷。
 
@@ -29,7 +29,7 @@ python3 tests/integration_test.py --server ./build/message_server --client ./bui
 
 `ctest` 包含协议测试和集成测试。备用构建后也可使用上面的 Python 命令进行真实连接验证；具体参数可查看 `python3 tests/integration_test.py --help`。
 
-计划通过 GitHub Actions 在 Ubuntu 24.04 执行普通构建，以及启用 AddressSanitizer / UndefinedBehaviorSanitizer 的构建。配置工作流不等于验证已通过；只有获取对应提交的实际运行结果后，才在 [验证状态](status.md) 登记。
+GitHub Actions 会在推送和拉取请求时执行普通构建，以及启用 AddressSanitizer / UndefinedBehaviorSanitizer 的构建。每个用例都会检查服务端运行时存活、清理时未被强制终止且退出码为 0，保存日志尾部，避免漏掉退出阶段失败。每次运行的结果仅适用于对应提交，在 [验证状态](status.md) 登记。
 
 ## 应覆盖的行为
 
@@ -39,6 +39,8 @@ python3 tests/integration_test.py --server ./build/message_server --client ./bui
 - 请求发到一半就关闭连接；完整请求后半关闭发送方向，仍可接收响应。
 - 一个客户端发送非法请求或异常退出，同时正常客户端继续请求回复。
 - 重复连接和断开，观察连接能否重新建立及资源是否恢复；连接上限和缓冲保护需有对应检查。
+
+本次资源观察：50 次顺序连接前后 FD 均为 4；持有 64 条已完成请求的连接后，第 65 条被拒绝，已有连接仍可请求。慢接收端场景的服务端日志实际记录了 `pending_limit`，另一连接仍得到正确回复。这些是功能及保护策略的验证，不是性能容量结论。完整消息大小、时间、环境和日志见归档 JSON。
 
 不是所有网络路径都能靠一次运行触发。例如短消息测试可能没有真正触发部分发送。必须区分“实现处理了该状态”和“本次用例观测到了该状态”，不把分帧发送测试宣称为所有网络异常的证明。
 
