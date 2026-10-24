@@ -36,6 +36,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             --client $<TARGET_FILE:message_client>
             --report "${CMAKE_CURRENT_BINARY_DIR}/test-results/integration.json")
         set_tests_properties(integration PROPERTIES TIMEOUT 180)
+        add_test(NAME load_probe_checks COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/load_probe_test.py"
+            --server $<TARGET_FILE:message_server>)
+        set_tests_properties(load_probe_checks PROPERTIES TIMEOUT 60)
     endif()
 else()
     message(STATUS "Only the portable protocol tests are built here. Server and client require Linux.")

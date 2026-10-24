@@ -19,8 +19,13 @@ jobs:
         include:
           - name: debug
             sanitizers: "OFF"
+            build_type: Debug
           - name: asan-ubsan
             sanitizers: "ON"
+            build_type: Debug
+          - name: release
+            sanitizers: "OFF"
+            build_type: Release
     env:
       ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
@@ -38,11 +43,20 @@ jobs:
             lscpu
           } > build/test-results/environment.txt
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DMSG_ENABLE_SANITIZERS=${{ matrix.sanitizers }}
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DMSG_ENABLE_SANITIZERS=${{ matrix.sanitizers }}
+      - name: Preserve build configuration
+        run: cmake -LA -N build > build/test-results/build-config.txt
       - name: Build
         run: cmake --build build --parallel 2
       - name: Protocol and connection tests
         run: ctest --test-dir build --output-on-failure --output-junit test-results/ctest.xml
+      - name: Bounded loopback observations (not capacity benchmarks)
+        if: matrix.name == 'release'
+        run: |
+          python3 tests/load_probe.py --server ./build/message_server --connections 1 --message-bytes 128 --duration 3 --report build/test-results/load-1c-128b.json
+          python3 tests/load_probe.py --server ./build/message_server --connections 4 --message-bytes 128 --duration 3 --report build/test-results/load-4c-128b.json
+          python3 tests/load_probe.py --server ./build/message_server --connections 8 --message-bytes 128 --duration 3 --report build/test-results/load-8c-128b.json
+          python3 tests/load_probe.py --server ./build/message_server --connections 4 --message-bytes 1024 --duration 3 --report build/test-results/load-4c-1024b.json
       - name: Preserve measured test reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
