@@ -164,13 +164,13 @@ class IntegrationTests(unittest.TestCase):
         except (ConnectionResetError, ConnectionAbortedError):
             pass
 
-    def run_client(self, input_bytes=None, stdin_fd=None):
+    def run_client(self, input_bytes=None, stdin_fd=None, stdout_fd=None):
         if CONFIG.client is None:
             self.skipTest("--client was not supplied")
         arguments = {"input": input_bytes} if stdin_fd is None else {"stdin": stdin_fd}
         return subprocess.run(
             [str(CONFIG.client), "127.0.0.1", str(self.server.port)],
-            stdout=subprocess.PIPE,
+            stdout=subprocess.PIPE if stdout_fd is None else stdout_fd,
             stderr=subprocess.PIPE,
             timeout=CLIENT_TIMEOUT,
             check=False,
@@ -448,6 +448,49 @@ class IntegrationTests(unittest.TestCase):
         self.assertNotEqual(completed.returncode, 0, "stdin read error was reported as successful EOF")
         self.assertEqual(completed.stdout, b"")
         self.assertEqual(completed.stderr, b"message_client: stdin read failed\n")
+
+    @scenario(1, [12, 13], "client reply/help stdout failures return nonzero while server remains healthy")
+    def test_client_stdout_write_error(self):
+        if platform.system() != "Linux":
+            self.skipTest("/dev/full stdout error check requires Linux")
+        if CONFIG.client is None:
+            self.skipTest("--client was not supplied")
+        body = b"stdout error"
+        self.observations.update(
+            stdout_target="/dev/full (writes fail with ENOSPC)",
+            client_process_timeout_seconds=CLIENT_TIMEOUT,
+            healthy_probe_body_bytes=len(b"still healthy"),
+            stdout_error_subcases=[],
+        )
+        stdout_fd = os.open("/dev/full", os.O_WRONLY)
+        try:
+            for mode in ["reply", "help"]:
+                with self.subTest(mode=mode):
+                    if mode == "reply":
+                        completed = self.run_client(body + b"\n", stdout_fd=stdout_fd)
+                    else:
+                        completed = subprocess.run(
+                            [str(CONFIG.client), "--help"],
+                            stdin=subprocess.DEVNULL,
+                            stdout=stdout_fd,
+                            stderr=subprocess.PIPE,
+                            timeout=CLIENT_TIMEOUT,
+                            check=False,
+                        )
+                    self.observations["stdout_error_subcases"].append({
+                        "mode": mode,
+                        "request_body_bytes": len(body) if mode == "reply" else 0,
+                        "stdin_bytes": len(body) + 1 if mode == "reply" else 0,
+                        "connects_to_server": mode == "reply",
+                        "client_exit_code": completed.returncode,
+                    })
+                    self.assertIsNone(self.server.process.poll(), "client output error stopped the server")
+                    if mode == "reply":
+                        self.check_healthy()
+                    self.assertNotEqual(completed.returncode, 0, "stdout write failure returned success")
+                    self.assertEqual(completed.stderr, b"message_client: stdout write failed\n")
+        finally:
+            os.close(stdout_fd)
 
     @scenario(1, [20], "closed stderr pipe does not terminate the server during connection logging")
     def test_closed_stderr_pipe_isolation(self):
