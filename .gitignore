@@ -1,5 +1,6 @@
 /build*/
 /test-results/
+/.local-notes/
 __pycache__/
 *.pyc
 *.o

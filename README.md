@@ -1,90 +1,60 @@
-# Linux C++ 小型消息处理服务
+# Linux C++ 小型消息服务
 
 [![Linux build and tests](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/workflows/linux.yml/badge.svg)](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/workflows/linux.yml)
 
-`linux-cpp-message-service` 是面向学习和工程验证的 Linux C++ TCP 项目：客户端发送一条请求，服务端返回请求的字节数及原始内容。多个客户端可以分别与服务端通信，**不提供客户端之间的消息转发**。
+一个基于 C++17 和 POSIX socket 的 TCP 演示项目。客户端发送消息，服务端返回消息的字节数和原文，支持多个客户端分别请求、接收回复。
 
-目标环境为 Ubuntu，使用 C++17、POSIX socket 和单线程非阻塞 `poll` 服务端；命令行客户端按请求、回复顺序同步交互。项目由 AI 辅助实现，用户独立阅读、修改和排障的理解验收尚待完成。它是按通用需求新建的个人项目，不是原单位项目或其成果。
+- 单线程非阻塞 `poll`，每条连接保存自己的收发缓冲和发送进度。
+- 4 字节大端长度前缀，处理不完整消息、连续多帧和非法长度。
+- RAII 管理描述符，处理断连、半关闭和收发错误，设置连接与缓冲上限。
 
-## 当前状态
+## 构建与测试
 
-2026-10-25（北京时间）已在 GitHub Actions 的 Ubuntu 24.04 环境完成 **Debug、ASan/UBSan、Release** 三种构建验证。每种均通过协议测试、**21 项网络集成测试和 4 项测量工具检查**，无失败或跳过。验证版本为 `dad9d3b`，见 [CI 运行](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40160429026) 和 [归档的原始报告](reports/README.md)。
-
-项目已覆盖超长输入恢复、UTF-8 字节边界、EOF 尾行、输入读取失败和关闭日志管道回归。本轮修复了客户端输出失败仍返回成功的问题，真实复现与修复证据见 [排障案例](docs/debugging.md)。已有四组 Release 本机回环观察保留各自版本、条件及原始结果，见 [测量方法与限制](docs/measurement.md)。
-
-本人 Ubuntu 虚拟机复现、三终端手工演示和独立修改练习仍待完成；CI 通过不等于已经完成个人理解验收。详细条件见 [验证状态](docs/status.md) 和 [测试方法](docs/testing.md)。
-
-本项目用于练习消息边界、部分收发、连接清理及可重复验证。它不提供安全身份认证、持久化、离线消息或可靠投递保证，也没有生产流量或高并发能力的性能结论。
-
-## 快速开始
-
-在现有 Ubuntu 环境中确认已有 C++17 编译器、CMake 3.16 或以上；自动集成测试另需 Python 3.9 或以上的标准库。无需额外框架或测试库。
-
-先获取源码：
+环境：Ubuntu、支持 C++17 的编译器、CMake 3.16+、Python 3.9+。无第三方运行库依赖。
 
 ```bash
 git clone https://github.com/moonfellstargone-netizen/linux-cpp-message-service.git
 cd linux-cpp-message-service
-```
-
-构建与测试：
-
-```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
-ctest --test-dir build --output-on-failure
+(cd build && ctest --output-on-failure)
 ```
 
-较早版本的 CTest 如果不支持 `--test-dir`，进入 `build` 目录执行 `ctest --output-on-failure`。
+没有 CMake 时可用 `bash scripts/build.sh` 编译，测试方法见 [测试说明](docs/testing.md)。
 
-单独运行真实连接测试并保存本地 JSON 报告：
+## 运行
+
+终端一启动服务端：
 
 ```bash
-python3 tests/integration_test.py --server ./build/message_server --client ./build/message_client --report build/test-results/integration.json
+./build/message_server 9000
 ```
 
-没有 CMake 时，可使用直接调用 `g++` 的备用构建入口：
-
-```bash
-bash scripts/build.sh
-```
-
-在一个终端启动服务端：
-
-```bash
-./build/message_server
-```
-
-在另一个终端启动客户端：
+在其他终端启动客户端：
 
 ```bash
 ./build/message_client 127.0.0.1 9000
 ```
 
-每行输入对应一条请求，空行或超过 1024 字节的行会在客户端本地被拒绝，`/quit` 退出客户端。服务端默认端口为 `9000`，也可执行 `./build/message_server 9001` 指定端口；始终只监听 `127.0.0.1`。客户端参数依次为 IPv4 地址和端口，默认连接 `127.0.0.1:9000`。
+输入 `hello`，回复内容为：
 
-## 范围与限制
+```text
+bytes=5
+hello
+```
 
-- 请求正文为 1–1024 字节，响应包含 `bytes=<字节数>`、一个换行和原始请求。正文可以是任意字节；命令行入口按行输入，不校验 UTF-8。
-- 每连接独立保存接收和发送状态，解析不完整消息及连续多帧，非法长度导致该连接关闭。
-- 最多 64 个连接，每连接接收缓冲上限 8192 字节、待发送缓冲上限 65536 字节。这些是保护性限制，不是测出的性能指标。
-- 不提供账号、消息路由、超时、自动重连、应用层确认、数据库、音视频或多节点能力。仅监听本机，不用于公网部署。
-- CLI 最多保留 1024 字节的单行输入内容；超长行丢弃到行尾后本地报错，再继续处理下一行。输入读取错误明确报错并非零退出。没有测量客户端峰值内存，缓冲内容上限不等于进程内存上限。
-- CLI 刷新并检查帮助、交互提示和回复输出；已用 `/dev/full` 验证帮助与回复写失败时明确报错、非零退出。收到回复和成功写出 stdout 是两个不同环节，不提供输出持久化保证。
-- 日志管道的读取端关闭后服务可继续处理请求，但不会自动恢复日志目标，也不保证日志输出永不阻塞。
+每行一条消息，`/quit` 退出。完整流程见 [多客户端演示](docs/demo.md)。
 
-## 阅读导航
+## 范围
 
-- [协议与错误处理](docs/protocol.md)
-- [测试方法与记录要求](docs/testing.md)
-- [三终端演示及故障复现](docs/demo.md)
-- [源码阅读与独立练习](docs/learning.md)
-- [真实排障记录入口](docs/debugging.md)
-- [岗位对应、简历表述与面试准备](docs/application.md)
-- [有条件的本机测量与原始结果](docs/measurement.md)
-- [已执行测试的原始报告与来源](reports/README.md)
-- [已确认、待验证、暂不做与接续](docs/status.md)
+仅监听 `127.0.0.1`，请求正文 1–1024 字节，最多 64 条连接。当前提供在线请求回复，不含身份认证、客户端间转发和消息持久化。
 
-源码入口为 [服务端](src/server.cpp)、[客户端](src/client.cpp)、[协议与限制](include/msg/protocol.hpp) 和 [描述符所有权](include/msg/unique_fd.hpp)；测试入口为 [协议测试](tests/protocol_test.cpp)、[连接测试](tests/integration_test.py) 和 [测量工具检查](tests/load_probe_test.py)。
+Ubuntu CI 覆盖 Debug、Release 和 ASan/UBSan 构建，包含协议测试、21 项集成测试及 4 项测量工具检查。[查看报告](reports/README.md)
 
-可按 [投递说明](docs/application.md) 据实描述已实现和已验证的内容，同时继续使用已有真实经历投递；个人运行与理解验收仍待完成，不表述为“已独立掌握 Linux 服务端开发”。
+## 文档
+
+- [协议与连接处理](docs/protocol.md)
+- [构建与测试](docs/testing.md)
+- [演示步骤](docs/demo.md)
+- [排障记录](docs/debugging.md)
+- [本机测量](docs/measurement.md)
