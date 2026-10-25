@@ -20,6 +20,15 @@ std::runtime_error system_error(const char* operation) {
     return std::runtime_error(std::string(operation) + ": " + std::strerror(errno));
 }
 
+void flush_stdout() {
+    // A successful socket response does not imply stdout accepted its bytes.
+    // Flush first so buffered write errors are observed before reporting success.
+    std::cout.flush();
+    if (!std::cout) {
+        throw std::runtime_error("stdout write failed");
+    }
+}
+
 unsigned short parse_port(std::string_view text) {
     unsigned int port = 0;
     const auto result = std::from_chars(text.data(), text.data() + text.size(), port);
@@ -110,6 +119,7 @@ int main(int argc, char* argv[]) {
         if (argc > 3 || (argc == 2 && std::string_view(argv[1]) == "--help")) {
             std::cout << "Usage: message_client [IPv4-address] [port]\n"
                          "Send one nonempty line (1..1024 bytes) per request; /quit exits.\n";
+            flush_stdout();
             return argc > 3 ? 1 : 0;
         }
         const std::string host = argc >= 2 ? argv[1] : "127.0.0.1";
@@ -131,11 +141,13 @@ int main(int argc, char* argv[]) {
         const bool interactive = ::isatty(STDIN_FILENO) != 0;
         if (interactive) {
             std::cout << "Connected to " << host << ':' << port << ". /quit to exit.\n";
+            flush_stdout();
         }
         std::string line;
         while (true) {
             if (interactive) {
-                std::cout << "> " << std::flush;
+                std::cout << "> ";
+                flush_stdout();
             }
             const auto status = read_bounded_line(std::cin, line);
             // With the default stdio synchronization, a failed fgetc() can
@@ -159,6 +171,7 @@ int main(int argc, char* argv[]) {
             }
             std::cout.write(response.data(), static_cast<std::streamsize>(response.size()));
             std::cout << '\n';
+            flush_stdout();
         }
         return 0;
     } catch (const std::exception& error) {
