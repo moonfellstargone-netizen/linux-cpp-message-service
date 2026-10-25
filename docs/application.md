@@ -2,7 +2,9 @@
 
 本文件依据用户提供的 `job_photos.zip` 岗位截图，以及此前单独提供的亿迅 C/C++ 岗位截图，讨论本项目能提供的证据。这里只分析截图中的职责、语言与届别，不确认岗位仍在招聘，也不推定具体团队的主要技术栈。
 
-当前可核对的项目事实为：AI 辅助开发的 Linux C++17 TCP 消息处理服务，使用 POSIX socket、非阻塞 `poll` 和 RAII；提交 `d78f936` 在 [Ubuntu CI 运行 40110569171](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40110569171) 的 Debug、ASan/UBSan、Release 三种构建中，均通过协议测试、20 项网络集成测试和 4 项测量工具检查。Release 另完成四组有界本机请求回复观察。原始条件与输出见 [验证状态](status.md)、[报告来源](../reports/README.md) 和 [测量方法与结果](measurement.md)。
+当前可核对的项目事实为：AI 辅助开发的 Linux C++17 TCP 消息处理服务，使用 POSIX socket、非阻塞 `poll` 和 RAII；提交 `dad9d3b` 在 [Ubuntu CI 运行 40160429026](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40160429026) 的 Debug、ASan/UBSan、Release 三种构建中，均通过协议测试、21 项集成测试和 4 项测量工具检查，无失败或跳过。最新原始结果见 [Debug](../reports/ci-dad9d3b/debug/integration.json)、[ASan/UBSan](../reports/ci-dad9d3b/asan-ubsan/integration.json) 和 [Release](../reports/ci-dad9d3b/release/integration.json)。
+
+本文件采用的四组 Release 有界本机请求回复观察仍来自旧提交 `d78f936` 的 [Ubuntu CI 运行 40110569171](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40110569171)。原始条件与输出见 [验证状态](status.md)、[报告来源](../reports/README.md) 和 [测量方法与结果](measurement.md)。
 
 本人 Ubuntu 虚拟机复现、三终端演示及独立修改验收尚待完成。下面的材料描述仓库已有成果，不表示本人已独立掌握相关技术。已有真实实习和项目经历继续用于投递，复现与学习可以并行开展，不将完成本项目设为开始求职的前置条件。
 
@@ -45,7 +47,7 @@
 >
 > - 构建单线程非阻塞 TCP 服务端与同步命令行客户端，支持本机多客户端请求回复；使用 4 字节大端长度前缀处理不完整消息、连续帧和非法长度。
 > - 维护每连接收发缓冲与部分发送进度，处理异常断开、完整帧半关闭和描述符释放，设置连接及缓冲保护上限。
-> - 项目已在 Ubuntu Debug、ASan/UBSan、Release 构建下通过协议测试及 20 项网络集成测试，并记录日志管道关闭触发 SIGPIPE 的真实复现、修复和回归证据。
+> - 项目已在 Ubuntu Debug、ASan/UBSan、Release 构建下通过协议测试及 21 项集成测试，记录日志管道关闭触发 SIGPIPE、客户端标准输出写入失败却成功退出的真实复现、修复和回归证据。
 > - 建立有界本机请求回复测量工具，完成 Release 下四组可复现观察，保存构建、机器、负载条件与原始结果，不将本机观察表述为生产容量。
 >
 > 当前完成 CI 验证，个人 Ubuntu 复现及独立修改验收尚待完成。
@@ -55,8 +57,8 @@
 > **TCP 消息处理与异常回归项目｜个人项目，AI 辅助开发**
 >
 > - 使用 C++ 实现本机消息请求回复，以 Python 标准库编写正常、边界和异常测试，覆盖长度校验、拆帧、连接断开、错误隔离及命令行输入恢复。
-> - 在 Ubuntu CI 中通过协议测试与 20 项网络集成测试，Debug、ASan/UBSan、Release 构建均通过；另有 4 项测量工具检查，保存环境、条件、逐项结果和日志。
-> - 项目包含关闭日志管道导致 SIGPIPE、stdin 读取错误被当作 EOF，以及测试清理漏查退出码的真实排障记录，配有修复和回归证据。
+> - 在 Ubuntu CI 中通过协议测试与 21 项集成测试，Debug、ASan/UBSan、Release 构建均通过；另有 4 项测量工具检查，保存环境、条件、逐项结果和日志。
+> - 项目包含日志管道关闭导致 SIGPIPE、stdin 读取错误被当作 EOF、stdout 写入失败仍成功退出及测试清理漏查退出码的真实排障记录，配有修复和回归证据。
 >
 > 当前完成 CI 验证，个人 Ubuntu 复现及独立修改验收尚待完成；本项目作为通用工程与测试实践的补充。
 
@@ -87,13 +89,16 @@
 7. **为什么输入读取错误不能只检查 `eof()`？**
    在本项目默认 stdio 同步方式下，目录描述符的底层读取失败可能在 iostream 路径呈现为 EOF。项目额外检查 `std::ferror(stdin)`，将其报告为输入错误并非零退出；正常 EOF 尾行仍按独立规则处理。依据：[客户端有界读取与错误检查](../src/client.cpp)、[目录输入回归](../tests/integration_test.py) 的 `test_client_stdin_read_error`、[修复前后记录](debugging.md)。
 
-8. **20 项测试和 ASan/UBSan 通过，能证明什么？**
-   只证明对应提交在记录的 Ubuntu CI 条件下通过这些用例，不能证明不存在所有缺陷。用例含 3 客户端收发、50 次顺序连接、64 连接上限、非法帧、半关闭和输入错误等；这些不是百万连接或生产负载。sanitizer 检查也受执行路径限制，测试清理还需检查退出码。依据：[普通报告](../reports/ci-58fb118/debug/integration.json)、[ASan/UBSan 报告](../reports/ci-58fb118/asan-ubsan/integration.json)、[构建环境](../reports/ci-58fb118/debug/environment.txt) 与 [测试清理排障](debugging.md)。
+8. **21 项集成测试和 ASan/UBSan 通过，能证明什么？**
+   只证明对应提交在记录的 Ubuntu CI 条件下通过这些用例，不能证明不存在所有缺陷。用例含 3 客户端收发、50 次顺序连接、64 连接上限、非法帧、半关闭和输入输出错误等；这些不是百万连接或生产负载。新增的标准输出错误用例包含回复与 `--help` 两个子场景，仍计为 1 项用例。sanitizer 检查也受执行路径限制，测试清理还需检查退出码。依据：[普通报告](../reports/ci-dad9d3b/debug/integration.json)、[ASan/UBSan 报告](../reports/ci-dad9d3b/asan-ubsan/integration.json)、[Release 报告](../reports/ci-dad9d3b/release/integration.json)、[构建环境](../reports/ci-dad9d3b/debug/environment.txt) 与 [测试清理排障](debugging.md)。
+
+9. **已经收到服务端回复，为什么标准输出仍可能失败？`flush` 能保证持久化吗？**
+   收到网络回复后，客户端还要将结果写到本地标准输出，这一步也可能失败。原实现写入 `std::cout` 后未检查缓冲刷新结果；将输出重定向到 `/dev/full` 时，回复与 `--help` 两个子场景都曾错误地返回 0。修复在输出后显式 `flush` 并检查流状态，该场景会报告 `message_client: stdout write failed` 并返回 1；正常请求的输出失败后，其他连接仍可使用服务端。这个检查只能发现当前输出路径报告的错误，不是磁盘持久化、下游已经读到内容或消息可靠投递的承诺。依据：[客户端输出检查](../src/client.cpp)、[回归用例](../tests/integration_test.py) 的 `test_client_stdout_write_error`、[修复前结果](../reports/ci-ccfad9b/debug/integration.json)、[修复后 Debug](../reports/ci-dad9d3b/debug/integration.json)、[ASan/UBSan](../reports/ci-dad9d3b/asan-ubsan/integration.json)、[Release](../reports/ci-dad9d3b/release/integration.json) 与 [完整排障记录](debugging.md)。
 
 ## 测量证据与个人待办
 
 - 按 [学习练习](learning.md) 在本人 Ubuntu 中构建、运行，再独立调整长度上限并重跑边界测试。完成后记录实际修改与解释，更新个人验收状态。
-- 本轮有界本机负载测量工具 [load_probe.py](../tests/load_probe.py) 及其 [验证用例](../tests/load_probe_test.py)：**已通过上述 CI 的三种构建检查**。Release 在 1/4/8 连接、128 字节，以及 4 连接、1024 字节的四组本机场景完成观察，每组请求测量时长为 3 秒，实际窗口以报告为准。这些四组观察与 4 项工具检查是不同的执行内容。
+- 有界本机负载测量工具 [load_probe.py](../tests/load_probe.py) 及其 [验证用例](../tests/load_probe_test.py)：**已通过最新 `dad9d3b` CI 的三种构建检查**。本文件引用的四组测量记录来自旧提交 `d78f936`：Release 在 1/4/8 连接、128 字节，以及 4 连接、1024 字节的本机场景完成观察，每组请求测量时长为 3 秒，实际窗口以报告为准。四组观察与 4 项工具检查是不同的执行内容。
 - 测量报告保存源码与二进制 SHA、CPU 环境、实际测量窗口、完成请求数与每秒请求数，以及平均、最小和最大往返时间；方法、条件与原始输出入口见 [测量说明](measurement.md) 和 [报告归档](../reports/README.md)。未采样 p95/p99，不能补写这些指标；Python 测量端本身也影响结果。本地模拟不证明生产容量，也没有峰值内存结果，本文件不摘取吞吐数字用于宣传。
 - 对实际岗位核对语言、分组和届别，选择对应简历版本。没有对应语言或业务证据时，保持“补充工程例子”的定位，不以岗位关键词改变项目事实。
 

@@ -1,5 +1,39 @@
 # 真实排障记录
 
+## 案例：客户端 stdout 写入失败仍返回成功
+
+发现日期：2026-10-25（北京时间）。相关代码为 [客户端](../src/client.cpp) 的输出路径，回归用例为 `test_client_stdout_write_error`。
+
+### 复现与原因
+
+在 Linux 上将客户端 stdout 指向 `/dev/full`。这个系统设备可打开，但写入返回 `ENOSPC`，不需要真的耗尽磁盘空间。用例分别运行一次合法请求回复和 `--help`，设置 5 秒子进程超时，并捕获 stderr；请求回复后还检查服务端存活与另一健康连接的响应。
+
+修复前的提交 `ccfad9b435cc5cc2cff68d7494ff3470b0fdd8e3` 在 [Ubuntu CI 40160330934](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40160330934) 中真实复现：两个子场景均退出 `0`。Debug 的 [原始 JSON](../reports/ci-ccfad9b/debug/integration.json) 与 [CTest 日志](../reports/ci-ccfad9b/debug/LastTest.log) 保存实际结果。汇总为 21 项用例、2 failures；两次失败来自同一用例的两个 subTest，不是两个独立用例。服务端正常退出 0，没有被强制终止。
+
+原因是客户端校验了网络回复，却未检查 `std::cout` 输出结果。默认 iostream 输出失败通常设置流状态，不会自动抛出异常；部分输出还可能留在用户态缓冲区，直到后续刷新才发现错误。因此只检查网络请求是否成功，或只在刷新前检查输出状态，都不足以判断输出是否写出。
+
+### 最小修复与回归
+
+提交 `dad9d3b21aa2646e513e2658d3a0ab556771d012` 增加 `flush_stdout`：先显式刷新，再检查 `std::cout`。帮助、交互提示和回复均调用它；检测到失败后报告 `message_client: stdout write failed`，返回 1，不再处理下一条输入。没有改变协议或引入新的日志模块。
+
+[Ubuntu CI 40160429026](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40160429026) 的 Debug、ASan/UBSan、Release 三种构建均通过协议测试、21 项集成测试与 4 项测量工具检查。两个 stdout 子场景实际退出码均为 1，精确错误诊断断言通过，健康连接仍正常；[修复后 Debug 原始报告](../reports/ci-dad9d3b/debug/integration.json) 及其他构建见 [报告归档](../reports/README.md)。
+
+在 Ubuntu 构建后，可先检查不需要服务端的帮助输出路径：
+
+```bash
+./build/message_client --help >/dev/full
+echo $?
+```
+
+修复版本预期 stderr 为 `message_client: stdout write failed`，退出码为 1。再在另一终端启动服务端，检查回复输出路径：
+
+```bash
+printf 'stdout error\n' | ./build/message_client 127.0.0.1 9000 >/dev/full
+echo $?
+```
+
+这些命令用于个人复现；本人 Ubuntu 虚拟机的实际执行仍待完成。收到并校验回复与将其写到输出目标是不同环节，输出失败不能解释成“服务端未处理请求”，也不意味着可以无条件重发。刷新 iostream 不提供文件持久化保证。此次回归覆盖 `/dev/full`，没有修改客户端默认的 SIGPIPE 策略，也没有验证所有输出故障或交互终端错误。
+
 ## 案例：集成测试漏查服务端退出码
 
 发现日期：2026-10-24。问题位于 [连接测试脚本](../tests/integration_test.py) 的 `RunningServer.close` 与 `IntegrationTests.close_server` 清理流程。

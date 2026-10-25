@@ -2,7 +2,21 @@
 
 这里保存实际执行结果，避免仅依赖会过期的 CI 附件。最新归档日期为北京时间 2026-10-25，各快照对应下面明确列出的源码版本；原始报告没有重新生成或修改数值。
 
-## 最新三种构建与有界观察
+## 最新 stdout 修复与 21 项回归
+
+验证源码为 `dad9d3b21aa2646e513e2658d3a0ab556771d012`，来源为 [CI 40160429026](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40160429026)。Debug、ASan/UBSan 和 Release 三种构建各通过协议测试、21 项集成测试及 4 项测量工具检查，无失败或跳过。
+
+- Debug：[网络 JSON](ci-dad9d3b/debug/integration.json)、[环境](ci-dad9d3b/debug/environment.txt)、[构建配置](ci-dad9d3b/debug/build-config.txt)、[CTest 日志](ci-dad9d3b/debug/LastTest.log)、[CTest XML](ci-dad9d3b/debug/ctest.xml)。来源附件 `linux-tests-debug`，ID `12585892201`。
+- ASan/UBSan：[网络 JSON](ci-dad9d3b/asan-ubsan/integration.json)、[环境](ci-dad9d3b/asan-ubsan/environment.txt)、[构建配置](ci-dad9d3b/asan-ubsan/build-config.txt)、[CTest 日志](ci-dad9d3b/asan-ubsan/LastTest.log)、[CTest XML](ci-dad9d3b/asan-ubsan/ctest.xml)。来源附件 `linux-tests-asan-ubsan`，ID `12586246886`。
+- Release：[网络 JSON](ci-dad9d3b/release/integration.json)、[环境](ci-dad9d3b/release/environment.txt)、[构建配置](ci-dad9d3b/release/build-config.txt)、[CTest 日志](ci-dad9d3b/release/LastTest.log)、[CTest XML](ci-dad9d3b/release/ctest.xml)。来源附件 `linux-tests-release`，ID `12586256809`。
+
+修复前 `ccfad9b435cc5cc2cff68d7494ff3470b0fdd8e3` 的 [CI 40160330934](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40160330934) 真实失败。归档其 Debug 附件 `linux-tests-debug`（ID `12585817243`）的 [JSON](ci-ccfad9b/debug/integration.json)、[环境](ci-ccfad9b/debug/environment.txt)、[构建配置](ci-ccfad9b/debug/build-config.txt)、[日志](ci-ccfad9b/debug/LastTest.log) 与 [CTest XML](ci-ccfad9b/debug/ctest.xml)。
+
+新增用例将客户端 stdout 指向 `/dev/full`：合法请求正文 12 字节，随后健康连接请求正文 13 字节；另检查不连接服务端的 `--help`。两个子场景均有 5 秒进程超时，旧版本都退出 0，导致同一用例记 2 failures；修复后三种构建均退出 1，精确诊断检查及健康连接检查通过。所有文件均直接摘自对应附件，保留原始数值；解释与复现见 [排障案例](../docs/debugging.md)。
+
+本轮归档用于功能回归，没有将运行耗时作为性能指标。下方四组测量仍属于原 `d78f936` 快照，未随本轮客户端修复改写。
+
+## 前次三种构建与有界观察
 
 源码为 `d78f93670998a85e228ce4296cf5d19b9fac49da`，来源为 [CI 运行 40110569171](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40110569171)，执行于 2026-10-24 16:13–16:14 UTC（北京时间 2026-10-25）。三种构建各有 3 个 CTest 测试组：协议测试、20 项网络集成测试、4 项测量工具检查；均通过，无失败或跳过。
 

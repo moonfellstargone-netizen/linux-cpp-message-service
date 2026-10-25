@@ -8,9 +8,9 @@
 
 ## 当前状态
 
-2026-10-25（北京时间）已在 GitHub Actions 的 Ubuntu 24.04 环境完成 **Debug、ASan/UBSan、Release** 三种构建验证。每种均通过协议测试、**20 项网络集成测试和 4 项测量工具检查**，无失败或跳过。验证版本为 `d78f936`，见 [CI 运行](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40110569171) 和 [归档的原始报告](reports/README.md)。
+2026-10-25（北京时间）已在 GitHub Actions 的 Ubuntu 24.04 环境完成 **Debug、ASan/UBSan、Release** 三种构建验证。每种均通过协议测试、**21 项网络集成测试和 4 项测量工具检查**，无失败或跳过。验证版本为 `dad9d3b`，见 [CI 运行](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40160429026) 和 [归档的原始报告](reports/README.md)。
 
-项目已覆盖超长输入恢复、UTF-8 字节边界、EOF 尾行、输入读取失败和关闭日志管道回归；真实问题与修复前后的证据见 [排障案例](docs/debugging.md)。本轮新增有界测量工具和四组 Release 本机回环观察，保留条件及原始结果，见 [测量方法与限制](docs/measurement.md)。
+项目已覆盖超长输入恢复、UTF-8 字节边界、EOF 尾行、输入读取失败和关闭日志管道回归。本轮修复了客户端输出失败仍返回成功的问题，真实复现与修复证据见 [排障案例](docs/debugging.md)。已有四组 Release 本机回环观察保留各自版本、条件及原始结果，见 [测量方法与限制](docs/measurement.md)。
 
 本人 Ubuntu 虚拟机复现、三终端手工演示和独立修改练习仍待完成；CI 通过不等于已经完成个人理解验收。详细条件见 [验证状态](docs/status.md) 和 [测试方法](docs/testing.md)。
 
@@ -70,6 +70,7 @@ bash scripts/build.sh
 - 最多 64 个连接，每连接接收缓冲上限 8192 字节、待发送缓冲上限 65536 字节。这些是保护性限制，不是测出的性能指标。
 - 不提供账号、消息路由、超时、自动重连、应用层确认、数据库、音视频或多节点能力。仅监听本机，不用于公网部署。
 - CLI 最多保留 1024 字节的单行输入内容；超长行丢弃到行尾后本地报错，再继续处理下一行。输入读取错误明确报错并非零退出。没有测量客户端峰值内存，缓冲内容上限不等于进程内存上限。
+- CLI 刷新并检查帮助、交互提示和回复输出；已用 `/dev/full` 验证帮助与回复写失败时明确报错、非零退出。收到回复和成功写出 stdout 是两个不同环节，不提供输出持久化保证。
 - 日志管道的读取端关闭后服务可继续处理请求，但不会自动恢复日志目标，也不保证日志输出永不阻塞。
 
 ## 阅读导航

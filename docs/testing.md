@@ -2,7 +2,7 @@
 
 ## 状态与目的
 
-2026-10-25（北京时间），验证提交 `d78f936` 在 GitHub Actions Ubuntu 24.04 的 Debug、ASan/UBSan 和 Release 构建下均通过协议测试、20 项连接测试及 4 项测量工具检查，无失败、无跳过。详见 [CI 运行](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40110569171) 与 [原始报告](../reports/README.md)。本人 Ubuntu 虚拟机复现和手工演示仍待执行。
+2026-10-25（北京时间），验证提交 `dad9d3b` 在 GitHub Actions Ubuntu 24.04 的 Debug、ASan/UBSan 和 Release 构建下均通过协议测试、21 项连接测试及 4 项测量工具检查，无失败、无跳过。详见 [CI 运行](https://github.com/moonfellstargone-netizen/linux-cpp-message-service/actions/runs/40160429026) 与 [原始报告](../reports/README.md)。本人 Ubuntu 虚拟机复现和手工演示仍待执行。
 
 CTest 包含三个测试组：纯协议测试验证长度、边界和字节保留；真实 socket 集成测试验证连接收发、断开及错误隔离；测量工具检查验证结果自洽及失败时不会报告成功指标。程序在某次测试中通过，不等于不存在其他缺陷。
 
@@ -59,6 +59,7 @@ GNU/Clang 配置包含 `-fno-sanitize-recover=undefined`，防止本地 UBSan �
 - 重复连接和断开，观察连接能否重新建立及资源是否恢复；连接上限和缓冲保护需有对应检查。
 - CLI 的 2 MiB 超长行、1024/1025 字节与 UTF-8 边界、空行恢复、`/quit`、无末尾换行及超长 EOF；精确检查 stdout 响应序列与 stderr 本地诊断。
 - Linux 目录描述符作为 stdin 时客户端报告读取错误并非零退出；关闭服务端 stderr 管道读取端后合法请求仍正常，服务端保持存活并正常清理。
+- 客户端回复和 `--help` 分别写入 `/dev/full`，两者均报告 `stdout write failed` 并返回 1；回复场景后健康连接仍正常。两个子场景计为一个集成用例，不计为两个独立测试。
 
 本次资源观察：50 次顺序连接前后 FD 均为 4；持有 64 条已完成请求的连接后，第 65 条被拒绝，已有连接仍可请求。慢接收端场景的服务端日志实际记录了 `pending_limit`，另一连接仍得到正确回复。这些是功能及保护策略的验证，不是性能容量结论。完整消息大小、时间、环境和日志见归档 JSON。
 

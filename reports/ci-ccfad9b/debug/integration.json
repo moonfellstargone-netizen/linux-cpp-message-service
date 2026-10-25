@@ -1,0 +1,480 @@
+{
+  "report_type": "functional_and_fault_validation_not_a_performance_benchmark",
+  "started_at_utc": "2026-10-25T04:01:09.749611+00:00",
+  "elapsed_seconds": 1.1527195619999944,
+  "environment": {
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "system": "Linux",
+    "kernel_release": "6.17.0-1022-azure",
+    "machine": "x86_64",
+    "cpu_model": "AMD EPYC 7763 64-Core Processor",
+    "logical_cpu_count": 4,
+    "physical_memory_bytes": 16766414848,
+    "python_version": "3.12.3",
+    "python_executable": "/usr/bin/python3.12",
+    "server_executable": "/home/runner/work/linux-cpp-message-service/linux-cpp-message-service/build/message_server",
+    "client_executable": "/home/runner/work/linux-cpp-message-service/linux-cpp-message-service/build/message_client",
+    "network": "IPv4 loopback 127.0.0.1; ephemeral server port per case",
+    "per_response_timeout_seconds": 2.0
+  },
+  "summary": {
+    "cases_run": 21,
+    "failures": 2,
+    "errors": 0,
+    "skipped": 0,
+    "successful": false
+  },
+  "cases": [
+    {
+      "case": "test_client_bounded_line_recovery",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          1024,
+          15
+        ],
+        "purpose": "2 MiB and 1025-byte stdin lines are rejected before valid-line recovery"
+      },
+      "elapsed_seconds": 0.09449698299999909,
+      "observations": {
+        "stdin_line_bytes": [
+          2097152,
+          1024,
+          1025,
+          15
+        ],
+        "expected_sent_request_body_bytes": [
+          1024,
+          15
+        ],
+        "expected_local_rejections": 2,
+        "client_process_timeout_seconds": 5.0,
+        "memory_usage_not_measured": true,
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=38437 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_client_eof_tail_lines",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          8
+        ],
+        "purpose": "EOF without newline sends one valid tail but rejects an oversized tail"
+      },
+      "elapsed_seconds": 0.02486941300000467,
+      "observations": {
+        "separate_client_stdin_bytes": [
+          8,
+          1025
+        ],
+        "trailing_newline": false,
+        "expected_sent_request_body_bytes": [
+          8
+        ],
+        "expected_local_rejections": 1,
+        "client_process_timeout_seconds": 5.0,
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=46815 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=accepted connection=2 reason=connected\nevent=closed connection=2 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_client_smoke",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          12
+        ],
+        "purpose": "real command-line client reads stdin and prints response"
+      },
+      "elapsed_seconds": 0.023410380000001396,
+      "observations": {
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=32913 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_client_stdin_read_error",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [],
+        "purpose": "Linux directory stdin descriptor produces a read error and nonzero exit"
+      },
+      "elapsed_seconds": 0.023177479000004553,
+      "observations": {
+        "stdin_source": "read-only directory descriptor (read returns EISDIR)",
+        "expected_sent_request_body_bytes": [],
+        "client_process_timeout_seconds": 5.0,
+        "client_exit_code": 1,
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=37757 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_client_stdout_write_error",
+      "status": "failed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          12,
+          13
+        ],
+        "purpose": "client reply/help stdout failures return nonzero while server remains healthy"
+      },
+      "detail": "Traceback (most recent call last):\n  File \"/home/runner/work/linux-cpp-message-service/linux-cpp-message-service/tests/integration_test.py\", line 490, in test_client_stdout_write_error\n    self.assertNotEqual(completed.returncode, 0, \"stdout write failure returned success\")\nAssertionError: 0 == 0 : stdout write failure returned success\n",
+      "elapsed_seconds": 0.026786967999996136,
+      "observations": {
+        "stdout_target": "/dev/full (writes fail with ENOSPC)",
+        "client_process_timeout_seconds": 5.0,
+        "healthy_probe_body_bytes": 13,
+        "stdout_error_subcases": [
+          {
+            "mode": "reply",
+            "request_body_bytes": 12,
+            "stdin_bytes": 13,
+            "connects_to_server": true,
+            "client_exit_code": 0
+          },
+          {
+            "mode": "help",
+            "request_body_bytes": 0,
+            "stdin_bytes": 0,
+            "connects_to_server": false,
+            "client_exit_code": 0
+          }
+        ],
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=44759 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=accepted connection=2 reason=connected\nevent=closed connection=2 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_client_utf8_empty_and_quit",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          1024,
+          5
+        ],
+        "purpose": "UTF-8 byte boundary, empty-line recovery, and /quit ignores later stdin"
+      },
+      "elapsed_seconds": 0.0232631060000017,
+      "observations": {
+        "stdin_line_bytes": [
+          0,
+          1024,
+          1025,
+          5,
+          5,
+          8
+        ],
+        "expected_sent_request_body_bytes": [
+          1024,
+          5
+        ],
+        "expected_local_rejections": 2,
+        "client_process_timeout_seconds": 5.0,
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=33037 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_closed_stderr_pipe_isolation",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          20
+        ],
+        "purpose": "closed stderr pipe does not terminate the server during connection logging"
+      },
+      "elapsed_seconds": 0.3066938429999979,
+      "observations": {
+        "stderr_pipe_reader_closed": true,
+        "server_processes_in_case": 2,
+        "closed_stderr_server": {
+          "forced_kill_during_cleanup": false,
+          "exit_code_after_shutdown": 0,
+          "stdout_log_tail": "event=listening port=39257 address=127.0.0.1\n"
+        },
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=37953 address=127.0.0.1\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_coalesced_frames",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          1,
+          6,
+          1024
+        ],
+        "purpose": "several frames are coalesced in one application write"
+      },
+      "elapsed_seconds": 0.022079853999997567,
+      "observations": {
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=41777 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_connection_limit_isolation",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 65,
+        "request_body_bytes": [
+          8
+        ],
+        "purpose": "64 accepted peers stay usable when the next peer is rejected"
+      },
+      "elapsed_seconds": 0.03324686900000273,
+      "observations": {
+        "accepted_connections_held": 64,
+        "excess_connection_rejected": true,
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "n=connected\nevent=accepted connection=47 reason=connected\nevent=accepted connection=48 reason=connected\nevent=accepted connection=49 reason=connected\nevent=accepted connection=50 reason=connected\nevent=accepted connection=51 reason=connected\nevent=accepted connection=52 reason=connected\nevent=accepted connection=53 reason=connected\nevent=accepted connection=54 reason=connected\nevent=accepted connection=55 reason=connected\nevent=accepted connection=56 reason=connected\nevent=accepted connection=57 reason=connected\nevent=accepted connection=58 reason=connected\nevent=accepted connection=59 reason=connected\nevent=accepted connection=60 reason=connected\nevent=accepted connection=61 reason=connected\nevent=accepted connection=62 reason=connected\nevent=accepted connection=63 reason=connected\nevent=accepted connection=64 reason=connected\nevent=rejected connection=65 reason=connection_limit\nevent=closed connection=1 reason=peer_eof\nevent=closed connection=2 reason=peer_eof\nevent=closed connection=3 reason=peer_eof\nevent=closed connection=4 reason=peer_eof\nevent=closed connection=5 reason=peer_eof\nevent=closed connection=6 reason=peer_eof\nevent=closed connection=7 reason=peer_eof\nevent=closed connection=8 reason=peer_eof\nevent=closed connection=9 reason=peer_eof\nevent=closed connection=10 reason=peer_eof\nevent=closed connection=11 reason=peer_eof\nevent=closed connection=12 reason=peer_eof\nevent=closed connection=13 reason=peer_eof\nevent=closed connection=14 reason=peer_eof\nevent=closed connection=15 reason=peer_eof\nevent=closed connection=16 reason=peer_eof\nevent=closed connection=17 reason=server_shutdown\nevent=closed connection=18 reason=server_shutdown\nevent=closed connection=19 reason=server_shutdown\nevent=closed connection=20 reason=server_shutdown\nevent=closed connection=21 reason=server_shutdown\nevent=closed connection=22 reason=server_shutdown\nevent=closed connection=23 reason=server_shutdown\nevent=closed connection=24 reason=server_shutdown\nevent=closed connection=25 reason=server_shutdown\nevent=closed connection=26 reason=server_shutdown\nevent=closed connection=27 reason=server_shutdown\nevent=closed connection=28 reason=server_shutdown\nevent=closed connection=29 reason=server_shutdown\nevent=closed connection=30 reason=server_shutdown\nevent=closed connection=31 reason=server_shutdown\nevent=closed connection=32 reason=server_shutdown\nevent=closed connection=33 reason=server_shutdown\nevent=closed connection=34 reason=server_shutdown\nevent=closed connection=35 reason=server_shutdown\nevent=closed connection=36 reason=server_shutdown\nevent=closed connection=37 reason=server_shutdown\nevent=closed connection=38 reason=server_shutdown\nevent=closed connection=39 reason=server_shutdown\nevent=closed connection=40 reason=server_shutdown\nevent=closed connection=41 reason=server_shutdown\nevent=closed connection=42 reason=server_shutdown\nevent=closed connection=43 reason=server_shutdown\nevent=closed connection=44 reason=server_shutdown\nevent=closed connection=45 reason=server_shutdown\nevent=closed connection=46 reason=server_shutdown\nevent=closed connection=47 reason=server_shutdown\nevent=closed connection=48 reason=server_shutdown\nevent=closed connection=49 reason=server_shutdown\nevent=closed connection=50 reason=server_shutdown\nevent=closed connection=51 reason=server_shutdown\nevent=closed connection=52 reason=server_shutdown\nevent=closed connection=53 reason=server_shutdown\nevent=closed connection=54 reason=server_shutdown\nevent=closed connection=55 reason=server_shutdown\nevent=closed connection=56 reason=server_shutdown\nevent=closed connection=57 reason=server_shutdown\nevent=closed connection=58 reason=server_shutdown\nevent=closed connection=59 reason=server_shutdown\nevent=closed connection=60 reason=server_shutdown\nevent=closed connection=61 reason=server_shutdown\nevent=closed connection=62 reason=server_shutdown\nevent=closed connection=63 reason=server_shutdown\nevent=closed connection=64 reason=server_shutdown\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_embedded_nul",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          5
+        ],
+        "purpose": "embedded NUL bytes are preserved"
+      },
+      "elapsed_seconds": 0.021939891000002376,
+      "observations": {
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=36821 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_error_isolation",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 2,
+        "request_body_bytes": [
+          0,
+          6
+        ],
+        "purpose": "one protocol error leaves an existing peer usable"
+      },
+      "elapsed_seconds": 0.022107474999998544,
+      "observations": {
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=43601 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=accepted connection=2 reason=connected\nevent=closed connection=2 reason=invalid_length\nevent=closed connection=1 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_fragmented_header_and_body",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          19
+        ],
+        "purpose": "header and body arrive in separate writes"
+      },
+      "elapsed_seconds": 0.22286796299999878,
+      "observations": {
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=40163 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_half_close_complete_frame",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          18
+        ],
+        "purpose": "complete request survives write half-close"
+      },
+      "elapsed_seconds": 0.02223541400000073,
+      "observations": {
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=36913 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_incomplete_orderly_eof",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          5
+        ],
+        "purpose": "truncated header/body followed by orderly EOF"
+      },
+      "elapsed_seconds": 0.02243537199999679,
+      "observations": {
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=36427 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=truncated_frame\nevent=accepted connection=2 reason=connected\nevent=closed connection=2 reason=peer_eof\nevent=accepted connection=3 reason=connected\nevent=closed connection=3 reason=truncated_frame\nevent=accepted connection=4 reason=connected\nevent=closed connection=4 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_incomplete_reset",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 2,
+        "request_body_bytes": [
+          5
+        ],
+        "purpose": "truncated header/body followed by TCP reset"
+      },
+      "elapsed_seconds": 0.022261805999995943,
+      "observations": {
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=35867 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=socket_error errno=104 detail=Connection reset by peer\nevent=accepted connection=2 reason=connected\nevent=closed connection=2 reason=peer_eof\nevent=accepted connection=3 reason=connected\nevent=closed connection=3 reason=socket_error errno=104 detail=Connection reset by peer\nevent=accepted connection=4 reason=connected\nevent=closed connection=4 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_invalid_length_header_only",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          0,
+          1025,
+          4294967295
+        ],
+        "purpose": "invalid lengths rejected from header alone"
+      },
+      "elapsed_seconds": 0.022652588999996226,
+      "observations": {
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=42295 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=invalid_length\nevent=accepted connection=2 reason=connected\nevent=closed connection=2 reason=peer_eof\nevent=accepted connection=3 reason=connected\nevent=closed connection=3 reason=invalid_length\nevent=accepted connection=4 reason=connected\nevent=closed connection=4 reason=peer_eof\nevent=accepted connection=5 reason=connected\nevent=closed connection=5 reason=invalid_length\nevent=accepted connection=6 reason=connected\nevent=closed connection=6 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_multiple_clients",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 3,
+        "request_body_bytes": [
+          5,
+          4,
+          5
+        ],
+        "purpose": "multiple live connections and repeated exchanges"
+      },
+      "elapsed_seconds": 0.022201652999996213,
+      "observations": {
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=44395 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=accepted connection=2 reason=connected\nevent=accepted connection=3 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=closed connection=2 reason=server_shutdown\nevent=closed connection=3 reason=server_shutdown\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_repeated_connections_release_fds",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          12
+        ],
+        "purpose": "50 sequential connections release process descriptors"
+      },
+      "elapsed_seconds": 0.02886954200000247,
+      "observations": {
+        "sequential_connections": 50,
+        "server_fds_before": 4,
+        "server_fds_after": 4,
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": " reason=connected\nevent=closed connection=7 reason=peer_eof\nevent=accepted connection=8 reason=connected\nevent=closed connection=8 reason=peer_eof\nevent=accepted connection=9 reason=connected\nevent=closed connection=9 reason=peer_eof\nevent=accepted connection=10 reason=connected\nevent=closed connection=10 reason=peer_eof\nevent=accepted connection=11 reason=connected\nevent=closed connection=11 reason=peer_eof\nevent=accepted connection=12 reason=connected\nevent=closed connection=12 reason=peer_eof\nevent=accepted connection=13 reason=connected\nevent=closed connection=13 reason=peer_eof\nevent=accepted connection=14 reason=connected\nevent=closed connection=14 reason=peer_eof\nevent=accepted connection=15 reason=connected\nevent=closed connection=15 reason=peer_eof\nevent=accepted connection=16 reason=connected\nevent=closed connection=16 reason=peer_eof\nevent=accepted connection=17 reason=connected\nevent=closed connection=17 reason=peer_eof\nevent=accepted connection=18 reason=connected\nevent=closed connection=18 reason=peer_eof\nevent=accepted connection=19 reason=connected\nevent=closed connection=19 reason=peer_eof\nevent=accepted connection=20 reason=connected\nevent=closed connection=20 reason=peer_eof\nevent=accepted connection=21 reason=connected\nevent=closed connection=21 reason=peer_eof\nevent=accepted connection=22 reason=connected\nevent=closed connection=22 reason=peer_eof\nevent=accepted connection=23 reason=connected\nevent=closed connection=23 reason=peer_eof\nevent=accepted connection=24 reason=connected\nevent=closed connection=24 reason=peer_eof\nevent=accepted connection=25 reason=connected\nevent=closed connection=25 reason=peer_eof\nevent=accepted connection=26 reason=connected\nevent=closed connection=26 reason=peer_eof\nevent=accepted connection=27 reason=connected\nevent=closed connection=27 reason=peer_eof\nevent=accepted connection=28 reason=connected\nevent=closed connection=28 reason=peer_eof\nevent=accepted connection=29 reason=connected\nevent=closed connection=29 reason=peer_eof\nevent=accepted connection=30 reason=connected\nevent=closed connection=30 reason=peer_eof\nevent=accepted connection=31 reason=connected\nevent=closed connection=31 reason=peer_eof\nevent=accepted connection=32 reason=connected\nevent=closed connection=32 reason=peer_eof\nevent=accepted connection=33 reason=connected\nevent=closed connection=33 reason=peer_eof\nevent=accepted connection=34 reason=connected\nevent=closed connection=34 reason=peer_eof\nevent=accepted connection=35 reason=connected\nevent=closed connection=35 reason=peer_eof\nevent=accepted connection=36 reason=connected\nevent=closed connection=36 reason=peer_eof\nevent=accepted connection=37 reason=connected\nevent=closed connection=37 reason=peer_eof\nevent=accepted connection=38 reason=connected\nevent=closed connection=38 reason=peer_eof\nevent=accepted connection=39 reason=connected\nevent=closed connection=39 reason=peer_eof\nevent=accepted connection=40 reason=connected\nevent=closed connection=40 reason=peer_eof\nevent=accepted connection=41 reason=connected\nevent=closed connection=41 reason=peer_eof\nevent=accepted connection=42 reason=connected\nevent=closed connection=42 reason=peer_eof\nevent=accepted connection=43 reason=connected\nevent=closed connection=43 reason=peer_eof\nevent=accepted connection=44 reason=connected\nevent=closed connection=44 reason=peer_eof\nevent=accepted connection=45 reason=connected\nevent=closed connection=45 reason=peer_eof\nevent=accepted connection=46 reason=connected\nevent=closed connection=46 reason=peer_eof\nevent=accepted connection=47 reason=connected\nevent=closed connection=47 reason=peer_eof\nevent=accepted connection=48 reason=connected\nevent=closed connection=48 reason=peer_eof\nevent=accepted connection=49 reason=connected\nevent=closed connection=49 reason=peer_eof\nevent=accepted connection=50 reason=connected\nevent=closed connection=50 reason=peer_eof\nevent=accepted connection=51 reason=connected\nevent=closed connection=51 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_slow_reader_does_not_block_healthy_peer",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 2,
+        "request_body_bytes": [
+          1024,
+          13
+        ],
+        "purpose": "bounded non-reading peer exercise with healthy peer"
+      },
+      "elapsed_seconds": 0.12258200899999849,
+      "observations": {
+        "confirmed_request_bytes_sent": 4424512,
+        "outcome": "peer_closed",
+        "request_wire_byte_budget": 8388608,
+        "producer_time_budget_seconds": 2.0,
+        "does_not_prove_partial_send_branch_coverage": true,
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=39491 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=pending_limit\nevent=accepted connection=2 reason=connected\nevent=closed connection=2 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_utf8_byte_count",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          15
+        ],
+        "purpose": "UTF-8 counts bytes, not characters"
+      },
+      "elapsed_seconds": 0.02202553200000068,
+      "observations": {
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=39837 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    },
+    {
+      "case": "test_valid_boundaries",
+      "status": "passed",
+      "conditions": {
+        "maximum_simultaneous_client_connections": 1,
+        "request_body_bytes": [
+          1,
+          1024
+        ],
+        "purpose": "minimum and maximum valid request length"
+      },
+      "elapsed_seconds": 0.02197493799999961,
+      "observations": {
+        "server_forced_kill_during_cleanup": false,
+        "server_exit_code_after_shutdown": 0,
+        "server_log_tail": "event=listening port=42851 address=127.0.0.1\nevent=accepted connection=1 reason=connected\nevent=closed connection=1 reason=peer_eof\nevent=stopped reason=signal\n"
+      }
+    }
+  ],
+  "limits": [
+    "Loopback functional checks do not establish production capacity or reliable delivery.",
+    "Write fragmentation does not guarantee matching TCP segment boundaries.",
+    "The slow-peer case does not prove the C++ partial-send branch executed.",
+    "Timeouts bound functional checks; elapsed times are not throughput or latency benchmarks."
+  ]
+}

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Linux-c++"
+	tests="3"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname="runnervmtai0g"
+	time="2"
+	timestamp="2026-10-25T04:02:48"
+	>
+	<testcase name="protocol" classname="protocol" time="0.00154352" status="run">
+		<properties/>
+		<system-out>Protocol checks passed (active in Debug and Release).
+</system-out>
+	</testcase>
+	<testcase name="integration" classname="integration" time="0.933935" status="run">
+		<properties/>
+		<system-out>test_client_bounded_line_recovery (__main__.IntegrationTests.test_client_bounded_line_recovery) ... ok
+test_client_eof_tail_lines (__main__.IntegrationTests.test_client_eof_tail_lines) ... ok
+test_client_smoke (__main__.IntegrationTests.test_client_smoke) ... ok
+test_client_stdin_read_error (__main__.IntegrationTests.test_client_stdin_read_error) ... ok
+test_client_stdout_write_error (__main__.IntegrationTests.test_client_stdout_write_error) ... ok
+test_client_utf8_empty_and_quit (__main__.IntegrationTests.test_client_utf8_empty_and_quit) ... ok
+test_closed_stderr_pipe_isolation (__main__.IntegrationTests.test_closed_stderr_pipe_isolation) ... ok
+test_coalesced_frames (__main__.IntegrationTests.test_coalesced_frames) ... ok
+test_connection_limit_isolation (__main__.IntegrationTests.test_connection_limit_isolation) ... ok
+test_embedded_nul (__main__.IntegrationTests.test_embedded_nul) ... ok
+test_error_isolation (__main__.IntegrationTests.test_error_isolation) ... ok
+test_fragmented_header_and_body (__main__.I...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="load_probe_checks" classname="load_probe_checks" time="1.0411" status="run">
+		<properties/>
+		<system-out>test_invalid_cli_ranges_are_rejected (__main__.LoadProbeTests.test_invalid_cli_ranges_are_rejected) ... ok
+test_missing_server_is_an_explicit_failure (__main__.LoadProbeTests.test_missing_server_is_an_explicit_failure) ... ok
+test_short_real_run_report_consistency (__main__.LoadProbeTests.test_short_real_run_report_consistency) ... ok
+test_startup_failure_has_no_successful_measurement (__main__.LoadProbeTests.test_startup_failure_has_no_successful_measurement) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.990s
+
+OK
+</system-out>
+	</testcase>
+</testsuite>
